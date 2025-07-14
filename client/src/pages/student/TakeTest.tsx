@@ -82,6 +82,7 @@ const TakeTest = () => {
   } | null>(null);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [securityViolations, setSecurityViolations] = useState<string[]>([]);
   const navigate = useNavigate();
 
@@ -90,7 +91,7 @@ const TakeTest = () => {
     if (step === "test" && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
-          if (prev <= 1) {
+          if (prev <= 1 && !submitting) {
             handleSubmitTest();
             return 0;
           }
@@ -261,7 +262,7 @@ const TakeTest = () => {
     console.log('Security violation:', violation);
 
     // Auto-submit test after 3 violations
-    if (securityViolations.length >= 2) {
+    if (securityViolations.length >= 2 && !submitting) {
       toast({
         title: "Security Alert",
         description: "Multiple violations detected. Test will be auto-submitted.",
@@ -278,8 +279,9 @@ const TakeTest = () => {
   };
 
   const handleSubmitTest = async () => {
-    if (!testData || !user || !testMetadata) return;
+    if (!testData || !user || !testMetadata || submitting) return;
 
+    setSubmitting(true);
     let correctAnswers = 0;
     let totalScore = 0;
     let totalPossibleScore = 0;
@@ -361,6 +363,8 @@ const TakeTest = () => {
         description: "Failed to submit test. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -546,9 +550,17 @@ const TakeTest = () => {
             {currentQuestion === testData.questions.length - 1 ? (
               <Button
                 onClick={handleSubmitTest}
-                className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                disabled={submitting}
+                className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Test
+                {submitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </div>
+                ) : (
+                  "Submit Test"
+                )}
               </Button>
             ) : (
               <Button
