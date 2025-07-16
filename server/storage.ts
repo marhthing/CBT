@@ -33,7 +33,7 @@ import {
   type InsertTestCodeBatch
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, getTableColumns, and } from "drizzle-orm";
+import { eq, sql, getTableColumns, and, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 // modify the interface with any CRUD methods
@@ -789,12 +789,25 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async deleteTestCodeBatch(batchId: string): Promise<void> {
-    await db.transaction(async (tx) => {
-      // Delete all codes in the batch
-      await tx.delete(testCodes).where(eq(testCodes.batchId, batchId));
+  async deleteTestCodeBatch(batchId: string) {
+    return await db.transaction(async (tx) => {
+      // First, get all test code IDs in this batch
+      const testCodesInBatch = await tx
+        .select({ id: testCodes.id })
+        .from(testCodes)
+        .where(eq(testCodes.batchId, batchId));
 
-      // Delete the batch
+      const testCodeIds = testCodesInBatch.map(tc => tc.id);
+
+      if (testCodeIds.length > 0) {
+        // Delete all test results that reference these test codes
+        await tx.delete(testResults).where(inArray(testResults.testCodeId, testCodeIds));
+
+        // Delete all test codes in this batch
+        await tx.delete(testCodes).where(eq(testCodes.batchId, batchId));
+      }
+
+      // Delete the batch itself
       await tx.delete(testCodeBatches).where(eq(testCodeBatches.id, batchId));
     });
   }
