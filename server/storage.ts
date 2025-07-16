@@ -794,16 +794,22 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTestCodeBatch(batchId: string) {
     return await db.transaction(async (tx) => {
-      // Mark all test codes in this batch as deleted
+      // Mark all test codes in this batch as deleted and inactive
       await tx
         .update(testCodes)
-        .set({ deletedAt: new Date() })
+        .set({ 
+          deletedAt: new Date(),
+          isActive: false 
+        })
         .where(eq(testCodes.batchId, batchId));
 
-      // Mark the batch itself as deleted
+      // Mark the batch itself as deleted and inactive
       await tx
         .update(testCodeBatches)
-        .set({ deletedAt: new Date() })
+        .set({ 
+          deletedAt: new Date(),
+          isActive: false 
+        })
         .where(eq(testCodeBatches.id, batchId));
     });
   }
