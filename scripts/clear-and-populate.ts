@@ -4,30 +4,38 @@ import { questions, testCodeBatches, testCodes, testResults, teacherAssignments,
 import bcrypt from "bcryptjs";
 
 async function clearAndPopulate() {
-  console.log("Clearing database (preserving terms, sessions, classes, subjects)...");
+  console.log("Clearing database and populating with fresh data...");
 
   try {
-    // Clear tables in order (respecting foreign key constraints)
-    await db.delete(testResults);
+    // Clear tables in proper order (respecting foreign key constraints)
+    console.log("Clearing existing data...");
+    
+    await db.delete(testResults).catch(() => console.log("No test results to clear"));
     console.log("Cleared test results");
 
-    await db.delete(testCodes);
+    await db.delete(testCodes).catch(() => console.log("No test codes to clear"));
     console.log("Cleared test codes");
 
-    await db.delete(testCodeBatches);
+    await db.delete(testCodeBatches).catch(() => console.log("No test code batches to clear"));
     console.log("Cleared test code batches");
 
-    await db.delete(questions);
+    await db.delete(questions).catch(() => console.log("No questions to clear"));
     console.log("Cleared questions");
 
-    await db.delete(teacherAssignments);
+    await db.delete(teacherAssignments).catch(() => console.log("No teacher assignments to clear"));
     console.log("Cleared teacher assignments");
 
-    await db.delete(profiles);
+    await db.delete(profiles).catch(() => console.log("No profiles to clear"));
     console.log("Cleared profiles");
 
-    await db.delete(users);
+    await db.delete(users).catch(() => console.log("No users to clear"));
     console.log("Cleared users");
+
+    // Clear reference data
+    await db.delete(subjects).catch(() => console.log("No subjects to clear"));
+    await db.delete(classes).catch(() => console.log("No classes to clear"));
+    await db.delete(terms).catch(() => console.log("No terms to clear"));
+    await db.delete(sessions).catch(() => console.log("No sessions to clear"));
 
     console.log("Database cleared successfully!");
 
@@ -511,10 +519,9 @@ async function clearAndPopulate() {
     console.log("");
     console.log("Database population completed successfully!");
 
-    process.exit(0);
-
   } catch (error) {
     console.error("Error:", error);
+    console.error("Error details:", JSON.stringify(error, null, 2));
     process.exit(1);
   }
 }
