@@ -22,6 +22,17 @@ interface DashboardStats {
   totalQuestions: number;
 }
 
+interface TestAnalysis {
+  totalTests: number;
+  passRate: number;
+  failRate: number;
+  averageScore: number;
+  highestScore: number;
+  lowestScore: number;
+  subjectBreakdown: { [key: string]: number };
+  classBreakdown: { [key: string]: number };
+}
+
 interface RecentTestResult {
   id: string;
   score: number;
@@ -54,6 +65,16 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [recentTests, setRecentTests] = useState<RecentTestResult[]>([]);
   const [loadingTests, setLoadingTests] = useState(true);
+  const [testAnalysis, setTestAnalysis] = useState<TestAnalysis>({
+    totalTests: 0,
+    passRate: 0,
+    failRate: 0,
+    averageScore: 0,
+    highestScore: 0,
+    lowestScore: 0,
+    subjectBreakdown: {},
+    classBreakdown: {}
+  });
 
   useEffect(() => {
     fetchStats();
@@ -93,26 +114,74 @@ const AdminDashboard = () => {
 
   const fetchRecentTests = async () => {
     try {
-      const response = await fetch('/api/test-results?limit=10&includeUser=true', {
+      // Fetch all test results for admin analysis
+      const response = await fetch('/api/test-results', {
         credentials: 'include'
       });
 
       if (response.ok) {
         const tests = await response.json();
-        // Filter out tests without proper user or testCode data
-        const validTests = tests.filter((test: RecentTestResult) => 
-          test && 
-          test.users && 
-          test.testCodes && 
-          test.users.fullName && 
-          test.users.email &&
-          test.testCodes.code &&
-          test.testCodes.subject &&
-          test.testCodes.class &&
-          test.testCodes.term
-        );
-        setRecentTests(validTests);
-        console.log('Filtered tests:', validTests.length, 'from', tests.length);
+        console.log('Fetched test results:', tests.length);
+        
+        // Sort by most recent and take last 10 for display
+        const sortedTests = tests
+          .filter((test: any) => test.testCodes) // Only tests with test code info
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 10);
+
+        // Transform to expected format
+        const transformedTests = sortedTests.map((test: any) => ({
+          id: test.id,
+          score: test.score,
+          totalQuestions: test.totalQuestions,
+          totalPossibleScore: test.totalPossibleScore,
+          timeTaken: test.timeTaken,
+          createdAt: test.createdAt,
+          testCodes: {
+            code: test.testCodes?.code || 'N/A',
+            subject: test.testCodes?.subject || 'N/A',
+            class: test.testCodes?.class || 'N/A',
+            term: test.testCodes?.term || 'N/A',
+            session: test.testCodes?.session || 'N/A'
+          },
+          users: {
+            fullName: 'Student', // We'll show generic name since we don't have user data
+            email: 'student@school.com'
+          }
+        }));
+
+        setRecentTests(transformedTests);
+
+        // Calculate analysis for all tests (not just recent 10)
+        if (tests.length > 0) {
+          const validTests = tests.filter((test: any) => test.testCodes && test.totalPossibleScore > 0);
+          
+          const scores = validTests.map((test: any) => (test.score / test.totalPossibleScore) * 100);
+          const passThreshold = 50; // 50% pass rate
+          const passCount = scores.filter(score => score >= passThreshold).length;
+          
+          const subjectBreakdown: { [key: string]: number } = {};
+          const classBreakdown: { [key: string]: number } = {};
+          
+          validTests.forEach((test: any) => {
+            const subject = test.testCodes?.subject || 'Unknown';
+            const className = test.testCodes?.class || 'Unknown';
+            
+            subjectBreakdown[subject] = (subjectBreakdown[subject] || 0) + 1;
+            classBreakdown[className] = (classBreakdown[className] || 0) + 1;
+          });
+
+          setTestAnalysis({
+            totalTests: validTests.length,
+            passRate: validTests.length > 0 ? Math.round((passCount / validTests.length) * 100) : 0,
+            failRate: validTests.length > 0 ? Math.round(((validTests.length - passCount) / validTests.length) * 100) : 0,
+            averageScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+            highestScore: scores.length > 0 ? Math.round(Math.max(...scores)) : 0,
+            lowestScore: scores.length > 0 ? Math.round(Math.min(...scores)) : 0,
+            subjectBreakdown,
+            classBreakdown
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching recent tests:', error);
@@ -222,6 +291,99 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
+        {/* Test Analysis Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2" />
+                Test Performance Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingTests ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{testAnalysis.passRate}%</div>
+                      <div className="text-sm text-gray-600">Pass Rate</div>
+                    </div>
+                    <div className="text-center p-3 bg-red-50 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">{testAnalysis.failRate}%</div>
+                      <div className="text-sm text-gray-600">Fail Rate</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Tests Taken</span>
+                      <Badge variant="outline">{testAnalysis.totalTests}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Average Score</span>
+                      <Badge variant="outline">{testAnalysis.averageScore}%</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Highest Score</span>
+                      <Badge variant="default" className="bg-green-600">{testAnalysis.highestScore}%</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Lowest Score</span>
+                      <Badge variant="destructive">{testAnalysis.lowestScore}%</Badge>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BookOpen className="h-5 w-5 mr-2" />
+                Subject & Class Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingTests ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">By Subject</h4>
+                    <div className="space-y-2">
+                      {Object.entries(testAnalysis.subjectBreakdown).map(([subject, count]) => (
+                        <div key={subject} className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">{subject}</span>
+                          <Badge variant="outline">{count} tests</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">By Class</h4>
+                    <div className="space-y-2">
+                      {Object.entries(testAnalysis.classBreakdown).map(([className, count]) => (
+                        <div key={className} className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">{className}</span>
+                          <Badge variant="outline">{count} tests</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Recent Test Results */}
         <Card>
           <CardHeader>
@@ -246,7 +408,7 @@ const AdminDashboard = () => {
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-sm">{test.users?.fullName || 'Unknown User'}</h3>
+                          <h3 className="font-semibold text-sm">Test Result</h3>
                           <Badge variant="outline" className="text-xs">
                             {test.testCodes?.code || 'N/A'}
                           </Badge>
@@ -254,7 +416,9 @@ const AdminDashboard = () => {
                         <p className="text-sm text-gray-600 mb-1">
                           {test.testCodes?.subject || 'N/A'} • {test.testCodes?.class || 'N/A'} • {test.testCodes?.term || 'N/A'}
                         </p>
-                        <p className="text-xs text-gray-500">{test.users?.email || 'No email'}</p>
+                        <p className="text-xs text-gray-500">
+                          {test.totalQuestions} questions • {test.testCodes?.session || 'N/A'}
+                        </p>
                       </div>
                       <div className="text-right">
                         <div className={`font-bold text-lg ${getScoreColor(test.score, test.totalPossibleScore)}`}>
