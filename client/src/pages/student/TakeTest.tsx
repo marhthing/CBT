@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -69,13 +70,13 @@ const TakeTest = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: any }>({});
   const [timeLeft, setTimeLeft] = useState(1800);
-  const [testData, setTestData<{
+  const [testData, setTestData] = useState<{
     title: string;
     questions: Question[];
     duration: number;
     testCodeId: string;
   } | null>(null);
-  const [testMetadata, setTestMetadata<{
+  const [testMetadata, setTestMetadata] = useState<{
     subject: string;
     class: string;
     term: string;
@@ -87,7 +88,8 @@ const TakeTest = () => {
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [securityViolations, setSecurityViolations<string[]>([]);
+  const [securityViolations, setSecurityViolations] = useState<string[]>([]);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,7 +98,7 @@ const TakeTest = () => {
       interval = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1 && !submitting) {
-            handleSubmitTest();
+            handleSubmitTest(true); // Force submit without modal when time is up
             return 0;
           }
           return prev - 1;
@@ -373,7 +375,7 @@ const TakeTest = () => {
         description: "Multiple violations detected. Test will be auto-submitted.",
         variant: "destructive"
       });
-      handleSubmitTest();
+      handleSubmitTest(true); // Force submit without modal
     } else {
       toast({
         title: "Security Warning",
@@ -383,8 +385,15 @@ const TakeTest = () => {
     }
   };
 
-  const handleSubmitTest = async () => {
+  const handleRequestSubmit = () => {
+    setShowSubmitModal(true);
+  };
+
+  const handleSubmitTest = async (force: boolean = false) => {
     if (!testData || !user || !testMetadata || submitting) return;
+    
+    // Close modal if open
+    setShowSubmitModal(false);
 
     setSubmitting(true);
     let correctAnswers = 0;
@@ -637,7 +646,7 @@ const TakeTest = () => {
 
             {currentQuestion === testData.questions.length - 1 ? (
               <Button
-                onClick={handleSubmitTest}
+                onClick={handleRequestSubmit}
                 disabled={submitting}
                 className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -659,6 +668,37 @@ const TakeTest = () => {
               </Button>
             )}
           </div>
+
+          {/* Submit Confirmation Modal */}
+          <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Submit Test</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to submit your test? Once submitted, you cannot make any changes to your answers.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowSubmitModal(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => handleSubmitTest(true)} 
+                  disabled={submitting}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {submitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Submitting...
+                    </div>
+                  ) : (
+                    "Yes, Submit Test"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </DashboardLayout>
     );
