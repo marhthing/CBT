@@ -492,19 +492,26 @@ const TakeTest = () => {
                 <CardTitle className="text-center">Enter Test Code</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="testCode">Test Code</Label>
-                  <Input
-                    id="testCode"
-                    placeholder="Enter test code (e.g., MATH001)"
-                    value={testCode}
-                    onChange={(e) => setTestCode(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <Button onClick={handleStartTest} className="w-full" disabled={loading}>
-                  {loading ? "Starting..." : "Start Test"}
-                </Button>
+                <form onSubmit={(e) => { e.preventDefault(); handleStartTest(); }}>
+                  <div>
+                    <Label htmlFor="testCode">Test Code</Label>
+                    <Input
+                      id="testCode"
+                      type="text"
+                      placeholder="Enter test code (e.g., MATH001)"
+                      value={testCode}
+                      onChange={(e) => setTestCode(e.target.value.toUpperCase())}
+                      className="mt-1"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck="false"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Starting..." : "Start Test"}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </div>

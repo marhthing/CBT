@@ -1251,7 +1251,9 @@ app.get("/api/test-code-batches/:batchId/codes", async (req, res) => {
         return res.status(403).json({ error: "Forbidden" });
       }
 
-      const students = await db
+      const { search } = req.query;
+
+      let query = db
         .select({
           id: profiles.userId,
           email: profiles.email,
@@ -1260,6 +1262,18 @@ app.get("/api/test-code-batches/:batchId/codes", async (req, res) => {
         })
         .from(profiles)
         .where(eq(profiles.role, 'student'));
+
+      // Add search filter if provided
+      if (search) {
+        query = query.where(
+          and(
+            eq(profiles.role, 'student'),
+            sql`(${profiles.fullName} ILIKE ${`%${search}%`} OR ${profiles.email} ILIKE ${`%${search}%`})`
+          )
+        );
+      }
+
+      const students = await query;
 
       // Generate CSV content
       const csvHeaders = ['ID', 'Email', 'Full Name', 'Registration Date'];

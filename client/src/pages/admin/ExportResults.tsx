@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown, Filter, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input';
+import { Label } from "@/components/ui/label";
+import { Download, Loader2, FileDown, Filter, FileText } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 
 interface Subject {
@@ -51,6 +51,15 @@ const ExportResults = () => {
     term: '',
     session: ''
   });
+  const [questionFilters, setQuestionFilters] = useState({
+    subject: '',
+    class: '',
+    term: ''
+  });
+  const [studentFilters, setStudentFilters] = useState({
+    search: ''
+  });
+  const [isExporting, setIsExporting] = useState(false);
   const [filteredResults, setFilteredResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -220,6 +229,88 @@ const ExportResults = () => {
     }
   };
 
+  const handleExportQuestions = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (questionFilters.subject) params.append('subject', questionFilters.subject);
+      if (questionFilters.class) params.append('class', questionFilters.class);
+      if (questionFilters.term) params.append('term', questionFilters.term);
+
+      const response = await fetch(`/api/questions/export?${params.toString()}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export questions');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `questions_export_${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Questions exported successfully",
+      });
+    } catch (error) {
+      console.error('Error exporting questions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to export questions",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportStudents = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (studentFilters.search) params.append('search', studentFilters.search);
+
+      const response = await fetch(`/api/students/export?${params.toString()}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export students');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `students_export_${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Students exported successfully",
+      });
+    } catch (error) {
+      console.error('Error exporting students:', error);
+      toast({
+        title: "Error",
+        description: "Failed to export students",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (loadingData) {
     return (
       <DashboardLayout>
@@ -316,7 +407,7 @@ const ExportResults = () => {
               <Button onClick={handleFilter} disabled={loading}>
                 {loading ? "Filtering..." : "Filter Results"}
               </Button>
-              
+
               <div className="flex gap-2">
                 <Button 
                   onClick={handleExportCSV} 
@@ -326,7 +417,7 @@ const ExportResults = () => {
                   <FileDown className="h-4 w-4 mr-2" />
                   Download CSV
                 </Button>
-                
+
                 <Button 
                   onClick={handleExportPDF} 
                   variant="outline"
@@ -372,6 +463,136 @@ const ExportResults = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Export Questions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Export Questions</CardTitle>
+            <CardDescription>
+              Export questions with optional filtering
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="question-subject">Subject</Label>
+                <Select
+                  value={questionFilters.subject}
+                  onValueChange={(value) => setQuestionFilters(prev => ({ ...prev, subject: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All subjects</SelectItem>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.name}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="question-class">Class</Label>
+                <Select
+                  value={questionFilters.class}
+                  onValueChange={(value) => setQuestionFilters(prev => ({ ...prev, class: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All classes</SelectItem>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.name}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="question-term">Term</Label>
+                <Select
+                  value={questionFilters.term}
+                  onValueChange={(value) => setQuestionFilters(prev => ({ ...prev, term: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All terms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All terms</SelectItem>
+                    {terms.map((term) => (
+                      <SelectItem key={term.id} value={term.name}>
+                        {term.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleExportQuestions}
+              disabled={isExporting}
+              className="w-full"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Questions
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Export Students */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Export Students</CardTitle>
+            <CardDescription>
+              Export student records with optional filtering
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="student-search">Filter by name or email</Label>
+              <Input
+                id="student-search"
+                placeholder="Search students..."
+                value={studentFilters.search}
+                onChange={(e) => setStudentFilters(prev => ({ ...prev, search: e.target.value }))}
+              />
+            </div>
+
+            <Button
+              onClick={handleExportStudents}
+              disabled={isExporting}
+              className="w-full"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Students
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

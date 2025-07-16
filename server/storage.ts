@@ -738,6 +738,8 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
+    console.log(`Found ${allQuestions.length} questions for test`);
+
     // Shuffle questions and return limited number
     const shuffled = allQuestions.sort(() => 0.5 - Math.random());
     return shuffled.slice(0, Math.min(limit, shuffled.length));
