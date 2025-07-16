@@ -89,16 +89,13 @@ const TakeTest = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [securityViolations, setSecurityViolations] = useState<string[]>([]);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const navigate = useNavigate();
-
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (step === "test" && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1 && !submitting) {
-            handleSubmitTest(true); // Force submit without modal when time is up
+            handleSubmitTest(); // Force submit when time is up
             return 0;
           }
           return prev - 1;
@@ -107,6 +104,7 @@ const TakeTest = () => {
     }
     return () => clearInterval(interval);
   }, [step, timeLeft]);
+  const navigate = useNavigate();
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -375,7 +373,7 @@ const TakeTest = () => {
         description: "Multiple violations detected. Test will be auto-submitted.",
         variant: "destructive"
       });
-      handleSubmitTest(true); // Force submit without modal
+      handleSubmitTest(); // Force submit without modal
     } else {
       toast({
         title: "Security Warning",
@@ -386,14 +384,11 @@ const TakeTest = () => {
   };
 
   const handleRequestSubmit = () => {
-    setShowSubmitModal(true);
+    handleSubmitTest();
   };
 
-  const handleSubmitTest = async (force: boolean = false) => {
+  const handleSubmitTest = async () => {
     if (!testData || !user || !testMetadata || submitting) return;
-    
-    // Close modal if open
-    setShowSubmitModal(false);
 
     setSubmitting(true);
     let correctAnswers = 0;
@@ -675,37 +670,6 @@ const TakeTest = () => {
               </Button>
             )}
           </div>
-
-          {/* Submit Confirmation Modal */}
-          <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Submit Test</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to submit your test? Once submitted, you cannot make any changes to your answers.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowSubmitModal(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => handleSubmitTest(true)} 
-                  disabled={submitting}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {submitting ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Submitting...
-                    </div>
-                  ) : (
-                    "Yes, Submit Test"
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </DashboardLayout>
     );

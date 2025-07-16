@@ -10,10 +10,7 @@ import {
   FileText, 
   TrendingUp, 
   BarChart3, 
-  GraduationCap,
-  Download,
-  Upload,
-  Database
+  GraduationCap
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -71,55 +68,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleBulkExport = async (type: 'questions' | 'students' | 'results') => {
-    try {
-      let endpoint = '';
-      let filename = '';
-
-      switch (type) {
-        case 'questions':
-          endpoint = '/api/questions/export';
-          filename = 'questions_export.csv';
-          break;
-        case 'students':
-          endpoint = '/api/students/export';
-          filename = 'students_export.csv';
-          break;
-        case 'results':
-          endpoint = '/api/test-results/export-csv';
-          filename = 'test_results_export.csv';
-          break;
-      }
-
-      const response = await fetch(endpoint, {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to export ${type}`);
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "Success",
-        description: `${type.charAt(0).toUpperCase() + type.slice(1)} exported successfully`,
-      });
-    } catch (error) {
-      console.error(`Error exporting ${type}:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to export ${type}`,
-        variant: "destructive"
-      });
-    }
-  };
+  
 
   if (loading) {
     return (
@@ -202,94 +151,7 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Bulk Operations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Database className="h-5 w-5" />
-              <span>Bulk Data Operations</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button
-                variant="outline"
-                onClick={() => handleBulkExport('questions')}
-                className="flex items-center justify-center space-x-2"
-              >
-                <Download className="h-4 w-4" />
-                <span>Export Questions</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => handleBulkExport('students')}
-                className="flex items-center justify-center space-x-2"
-              >
-                <Download className="h-4 w-4" />
-                <span>Export Students</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => handleBulkExport('results')}
-                className="flex items-center justify-center space-x-2"
-              >
-                <Download className="h-4 w-4" />
-                <span>Export Results</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="h-5 w-5 text-blue-600" />
-                <span>Question Management</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">Upload, edit, and manage questions across all subjects and classes.</p>
-              <div className="flex space-x-2">
-                <Badge variant="secondary">Multiple Choice</Badge>
-                <Badge variant="secondary">True/False</Badge>
-                <Badge variant="secondary">Essay</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-green-600" />
-                <span>Teacher Assignments</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">Assign teachers to subjects and classes for organized question management.</p>
-              <Badge variant="secondary">Subject Assignment</Badge>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-purple-600" />
-                <span>Test Code Generation</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">Generate secure test codes for students with randomized questions.</p>
-              <div className="flex space-x-2">
-                <Badge variant="secondary">Batch Generation</Badge>
-                <Badge variant="secondary">Randomized</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        
       </div>
     </DashboardLayout>
   );
