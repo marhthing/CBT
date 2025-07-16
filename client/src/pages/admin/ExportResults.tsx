@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown, Filter } from "lucide-react";
+import { FileDown, Filter, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Subject {
@@ -142,7 +142,7 @@ const ExportResults = () => {
 
     try {
       const params = new URLSearchParams(filters);
-      const response = await fetch(`/api/test-results/export-pdf?${params}`, {
+      const response = await fetch(`/api/test-results/export-csv?${params}`, {
         credentials: 'include'
       });
 
@@ -155,7 +155,7 @@ const ExportResults = () => {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `results_${filters.subject}_${filters.class}_${filters.term}_${filters.session}.csv`;
+      a.download = `test_results_${filters.subject}_${filters.class}_${filters.term}_${filters.session}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -170,6 +170,51 @@ const ExportResults = () => {
       toast({
         title: "Error",
         description: "Failed to export CSV",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (filteredResults.length === 0) {
+      toast({
+        title: "Error",
+        description: "No results to export. Please filter results first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(filters);
+      const response = await fetch(`/api/test-results/export-pdf?${params}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `test_results_${filters.subject}_${filters.class}_${filters.term}_${filters.session}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "PDF exported successfully",
+      });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to export PDF",
         variant: "destructive"
       });
     }
@@ -267,19 +312,30 @@ const ExportResults = () => {
               </div>
             </div>
 
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap gap-4">
               <Button onClick={handleFilter} disabled={loading}>
                 {loading ? "Filtering..." : "Filter Results"}
               </Button>
               
-              <Button 
-                onClick={handleExportCSV} 
-                variant="outline"
-                disabled={filteredResults.length === 0}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleExportCSV} 
+                  variant="outline"
+                  disabled={filteredResults.length === 0}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Download CSV
+                </Button>
+                
+                <Button 
+                  onClick={handleExportPDF} 
+                  variant="outline"
+                  disabled={filteredResults.length === 0}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

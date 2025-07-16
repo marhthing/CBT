@@ -829,8 +829,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PDF export endpoint for test results
-  app.get('/api/test-results/export-pdf', requireAuth, async (req, res) => {
+  // CSV export endpoint for test results
+  app.get('/api/test-results/export-csv', requireAuth, async (req, res) => {
     try {
       const profile = req.session.profile;
 
@@ -906,6 +906,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', `attachment; filename="test_results_${subject}_${className}_${term}_${sessionName}.csv"`);
       
       res.send(csvContent);
+    } catch (error) {
+      console.error('Export CSV error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // PDF export endpoint for test results
+  app.get('/api/test-results/export-pdf', requireAuth, async (req, res) => {
+    try {
+      const profile = req.session.profile;
+
+      if (profile.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const { subject, class: className, term, session: sessionName } = req.query;
+
+      // Get the filtered results
+      let query = db
+        .select({
+          id: testResults.id,
+          score: testResults.score,
+          totalPossibleScore: testResults.totalPossibleScore,
+          timeTaken: testResults.timeTaken,
+          createdAt: testResults.createdAt,
+          studentName: sql<string>`COALESCE(profiles.full_name, profiles.email)`,
+          testCodes: {
+            subject: testCodes.subject,
+            term: testCodes.term,
+            class: testCodes.class,
+            session: testCodes.session,
+            testType: testCodes.testType
+          }
+        })
+        .from(testResults)
+        .leftJoin(testCodes, eq(testResults.testCodeId, testCodes.id))
+        .leftJoin(profiles, eq(testResults.studentId, profiles.userId));
+
+      const conditions = [];
+      if (subject) conditions.push(eq(testCodes.subject, subject as string));
+      if (className) conditions.push(eq(testCodes.class, className as string));
+      if (term) conditions.push(eq(testCodes.term, term as string));
+      if (sessionName) conditions.push(eq(testCodes.session, sessionName as string));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      const results = await query;
+
+      if (results.length === 0) {
+        return res.status(400).json({ error: "No results found for the selected filters" });
+      }
+
+      // Generate PDF using jsPDF
+      const { jsPDF } = require('jspdf');
+      require('jspdf-autotable');
+
+      const doc = new jsPDF();
+
+      // Add title
+      doc.setFontSize(18);
+      doc.text('Test Results Report', 14, 22);
+
+      // Add filter information
+      doc.setFontSize(12);
+      let yPos = 35;
+      doc.text(`Subject: ${subject}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Class: ${className}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Term: ${term}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Session: ${sessionName}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, yPos);
+
+      // Prepare table data
+      const tableData = results.map(result => {
+        const percentage = Math.round((result.score / result.totalPossibleScore) * 100);
+        const timeTaken = result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A';
+        const date = new Date(result.createdAt).toLocaleDateString();
+        
+        return [
+          result.studentName,
+          result.testCodes.testType,
+          result.score.toString(),
+          result.totalPossibleScore.toString(),
+          `${percentage}%`,
+          timeTaken,
+          date
+        ];
+      });
+
+      // Add table
+      doc.autoTable({
+        head: [['Student Name', 'Test Type', 'Score', 'Total', 'Percentage', 'Time Taken', 'Date']],
+        body: tableData,
+        startY: yPos + 10,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [66, 139, 202] },
+        margin: { top: 10 },
+      });
+
+      // Generate PDF buffer
+      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="test_results_${subject}_${className}_${term}_${sessionName}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
     } catch (error) {
       console.error('Export PDF error:', error);
       res.status(500).json({ error: "Internal server error" });
