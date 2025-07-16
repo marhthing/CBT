@@ -30,9 +30,16 @@ interface Question {
   term: string;
   section: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswer: number | string;
   createdAt: string;
   teacher: string;
+  questionType?: string;
+  correctAnswerText?: string;
+  imageUrl?: string;
+  optionA?: string;
+  optionB?: string;
+  optionC?: string;
+  optionD?: string;
   createdByName: string;
   createdByRole: string;
   editedByName: string | null;
@@ -212,11 +219,14 @@ const ManageAllQuestions = () => {
           class: updatedQuestion.class,
           term: updatedQuestion.term,
           section: updatedQuestion.section,
-          optionA: updatedQuestion.options[0],
-          optionB: updatedQuestion.options[1],
-          optionC: updatedQuestion.options[2],
-          optionD: updatedQuestion.options[3],
-          correctAnswer: updatedQuestion.correctAnswer
+          questionType: updatedQuestion.questionType,
+          optionA: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.options[0] : null,
+          optionB: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.options[1] : null,
+          optionC: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.options[2] : null,
+          optionD: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.options[3] : null,
+          correctAnswer: updatedQuestion.correctAnswer,
+          correctAnswerText: updatedQuestion.correctAnswerText,
+          imageUrl: updatedQuestion.imageUrl
         })
       });
 
@@ -495,35 +505,208 @@ const EditQuestionDialog = ({
 }) => {
   const [editData, setEditData] = useState({
     question: question.question,
+    questionType: question.questionType || 'multiple_choice',
     options: [...question.options],
-    correctAnswer: question.correctAnswer
+    correctAnswer: question.correctAnswer,
+    correctAnswerText: question.correctAnswerText || '',
+    imageUrl: question.imageUrl || ''
   });
 
   useEffect(() => {
     setEditData({
       question: question.question,
+      questionType: question.questionType || 'multiple_choice',
       options: [...question.options],
-      correctAnswer: question.correctAnswer
+      correctAnswer: question.correctAnswer,
+      correctAnswerText: question.correctAnswerText || '',
+      imageUrl: question.imageUrl || ''
     });
   }, [question]);
+
+  const handleQuestionTypeChange = (newType: string) => {
+    setEditData(prev => ({
+      ...prev,
+      questionType: newType,
+      correctAnswer: newType === "true_false" ? "true" : newType === "multiple_choice" ? 0 : "",
+      options: newType === "multiple_choice" || newType === "image_based" ? [...prev.options] : ["", "", "", ""]
+    }));
+  };
+
+  const renderQuestionTypeFields = () => {
+    switch (editData.questionType) {
+      case 'multiple_choice':
+      case 'image_based':
+        return (
+          <>
+            {editData.questionType === 'image_based' && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-imageUrl">Image URL</Label>
+                <Input
+                  id="edit-imageUrl"
+                  value={editData.imageUrl}
+                  onChange={(e) => setEditData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  placeholder="Enter image URL..."
+                />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-optionA">Option A</Label>
+              <Input
+                id="edit-optionA"
+                value={editData.options[0]}
+                onChange={(e) => {
+                  const newOptions = [...editData.options];
+                  newOptions[0] = e.target.value;
+                  setEditData(prev => ({ ...prev, options: newOptions }));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-optionB">Option B</Label>
+              <Input
+                id="edit-optionB"
+                value={editData.options[1]}
+                onChange={(e) => {
+                  const newOptions = [...editData.options];
+                  newOptions[1] = e.target.value;
+                  setEditData(prev => ({ ...prev, options: newOptions }));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-optionC">Option C</Label>
+              <Input
+                id="edit-optionC"
+                value={editData.options[2]}
+                onChange={(e) => {
+                  const newOptions = [...editData.options];
+                  newOptions[2] = e.target.value;
+                  setEditData(prev => ({ ...prev, options: newOptions }));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-optionD">Option D</Label>
+              <Input
+                id="edit-optionD"
+                value={editData.options[3]}
+                onChange={(e) => {
+                  const newOptions = [...editData.options];
+                  newOptions[3] = e.target.value;
+                  setEditData(prev => ({ ...prev, options: newOptions }));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Correct Answer</Label>
+              <RadioGroup 
+                value={String(editData.correctAnswer)} 
+                onValueChange={(value) => setEditData(prev => ({ ...prev, correctAnswer: parseInt(value) }))}
+                className="flex flex-row space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="0" id="edit-correct-a" />
+                  <Label htmlFor="edit-correct-a">A</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="1" id="edit-correct-b" />
+                  <Label htmlFor="edit-correct-b">B</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="2" id="edit-correct-c" />
+                  <Label htmlFor="edit-correct-c">C</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="3" id="edit-correct-d" />
+                  <Label htmlFor="edit-correct-d">D</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </>
+        );
+
+      case 'true_false':
+        return (
+          <div className="space-y-2">
+            <Label>Correct Answer</Label>
+            <RadioGroup
+              value={editData.correctAnswer.toString()}
+              onValueChange={(value) => setEditData(prev => ({ ...prev, correctAnswer: value }))}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="true" id="edit-true" />
+                <Label htmlFor="edit-true">True</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="false" id="edit-false" />
+                <Label htmlFor="edit-false">False</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        );
+
+      case 'fill_blank':
+      case 'essay':
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="edit-correctAnswerText">Correct Answer / Sample Answer</Label>
+            <Textarea
+              id="edit-correctAnswerText"
+              value={editData.correctAnswerText}
+              onChange={(e) => setEditData(prev => ({ ...prev, correctAnswerText: e.target.value }))}
+              placeholder="Enter the correct answer or sample answer..."
+              rows={editData.questionType === 'essay' ? 4 : 2}
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   const handleSave = () => {
     const updatedQuestion = {
       ...question,
       question: editData.question,
+      questionType: editData.questionType,
       options: editData.options,
-      correctAnswer: editData.correctAnswer
+      correctAnswer: editData.correctAnswer,
+      correctAnswerText: editData.correctAnswerText,
+      imageUrl: editData.imageUrl,
+      optionA: editData.options[0],
+      optionB: editData.options[1],
+      optionC: editData.options[2],
+      optionD: editData.options[3]
     };
     onSave(updatedQuestion);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Question</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-questionType">Question Type</Label>
+            <Select value={editData.questionType} onValueChange={handleQuestionTypeChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                <SelectItem value="true_false">True/False</SelectItem>
+                <SelectItem value="fill_blank">Fill in the Blank</SelectItem>
+                <SelectItem value="essay">Essay</SelectItem>
+                <SelectItem value="image_based">Image-Based</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="edit-question">Question</Label>
             <Textarea
@@ -531,81 +714,11 @@ const EditQuestionDialog = ({
               value={editData.question}
               onChange={(e) => setEditData(prev => ({ ...prev, question: e.target.value }))}
               className="resize-none"
+              rows={3}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-optionA">Option A</Label>
-            <Input
-              id="edit-optionA"
-              value={editData.options[0]}
-              onChange={(e) => {
-                const newOptions = [...editData.options];
-                newOptions[0] = e.target.value;
-                setEditData(prev => ({ ...prev, options: newOptions }));
-              }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-optionB">Option B</Label>
-            <Input
-              id="edit-optionB"
-              value={editData.options[1]}
-              onChange={(e) => {
-                const newOptions = [...editData.options];
-                newOptions[1] = e.target.value;
-                setEditData(prev => ({ ...prev, options: newOptions }));
-              }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-optionC">Option C</Label>
-            <Input
-              id="edit-optionC"
-              value={editData.options[2]}
-              onChange={(e) => {
-                const newOptions = [...editData.options];
-                newOptions[2] = e.target.value;
-                setEditData(prev => ({ ...prev, options: newOptions }));
-              }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-optionD">Option D</Label>
-            <Input
-              id="edit-optionD"
-              value={editData.options[3]}
-              onChange={(e) => {
-                const newOptions = [...editData.options];
-                newOptions[3] = e.target.value;
-                setEditData(prev => ({ ...prev, options: newOptions }));
-              }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Correct Answer</Label>
-            <RadioGroup 
-              value={String(editData.correctAnswer)} 
-              onValueChange={(value) => setEditData(prev => ({ ...prev, correctAnswer: parseInt(value) }))}
-              className="flex flex-row space-x-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="0" id="edit-correct-a" />
-                <Label htmlFor="edit-correct-a">A</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="1" id="edit-correct-b" />
-                <Label htmlFor="edit-correct-b">B</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="2" id="edit-correct-c" />
-                <Label htmlFor="edit-correct-c">C</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="3" id="edit-correct-d" />
-                <Label htmlFor="edit-correct-d">D</Label>
-              </div>
-            </RadioGroup>
-          </div>
+
+          {renderQuestionTypeFields()}
         </div>
         <div className="flex justify-end space-x-2">
           <Button variant="outline" onClick={onClose}>

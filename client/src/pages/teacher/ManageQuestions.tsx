@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Question {
   id: string;
@@ -21,13 +22,16 @@ interface Question {
   term: string;
   section: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswer: number | string;
   createdAt: string;
   teacherId: string;
   optionA: string;
   optionB: string;
   optionC: string;
   optionD: string;
+  questionType?: string;
+  correctAnswerText?: string;
+  imageUrl?: string;
   createdByName?: string;
   editedByName?: string;
   editedByRole?: string;
@@ -158,11 +162,14 @@ const ManageQuestions = () => {
           section: updatedQuestion.section,
           subject: updatedQuestion.subject,
           question: updatedQuestion.question,
-          optionA: updatedQuestion.optionA,
-          optionB: updatedQuestion.optionB,
-          optionC: updatedQuestion.optionC,
-          optionD: updatedQuestion.optionD,
-          correctAnswer: updatedQuestion.correctAnswer
+          questionType: updatedQuestion.questionType,
+          optionA: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.optionA : null,
+          optionB: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.optionB : null,
+          optionC: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.optionC : null,
+          optionD: updatedQuestion.questionType === 'multiple_choice' || updatedQuestion.questionType === 'image_based' ? updatedQuestion.optionD : null,
+          correctAnswer: updatedQuestion.correctAnswer,
+          correctAnswerText: updatedQuestion.correctAnswerText,
+          imageUrl: updatedQuestion.imageUrl
         })
       });
 
@@ -414,90 +421,182 @@ const EditQuestionForm = ({
   onSave: (question: Question) => void;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState(question);
+  const [formData, setFormData] = useState({
+    ...question,
+    questionType: question.questionType || 'multiple_choice',
+    correctAnswerText: question.correctAnswerText || '',
+    imageUrl: question.imageUrl || ''
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
 
+  const handleQuestionTypeChange = (newType: string) => {
+    setFormData(prev => ({
+      ...prev,
+      questionType: newType,
+      correctAnswer: newType === "true_false" ? "true" : newType === "multiple_choice" ? 0 : "",
+      options: newType === "multiple_choice" || newType === "image_based" ? [prev.optionA, prev.optionB, prev.optionC, prev.optionD] : []
+    }));
+  };
+
+  const renderQuestionTypeFields = () => {
+    switch (formData.questionType) {
+      case 'multiple_choice':
+      case 'image_based':
+        return (
+          <>
+            {formData.questionType === 'image_based' && (
+              <div>
+                <Label>Image URL</Label>
+                <Input
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  placeholder="Enter image URL..."
+                />
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Option A</Label>
+                <Input
+                  value={formData.optionA}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    optionA: e.target.value,
+                    options: [e.target.value, prev.optionB, prev.optionC, prev.optionD]
+                  }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Option B</Label>
+                <Input
+                  value={formData.optionB}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    optionB: e.target.value,
+                    options: [prev.optionA, e.target.value, prev.optionC, prev.optionD]
+                  }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Option C</Label>
+                <Input
+                  value={formData.optionC}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    optionC: e.target.value,
+                    options: [prev.optionA, prev.optionB, e.target.value, prev.optionD]
+                  }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Option D</Label>
+                <Input
+                  value={formData.optionD}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    optionD: e.target.value,
+                    options: [prev.optionA, prev.optionB, prev.optionC, e.target.value]
+                  }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Correct Answer</Label>
+              <RadioGroup
+                value={formData.correctAnswer.toString()}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, correctAnswer: parseInt(value) }))}
+                className="flex flex-wrap gap-4 mt-2"
+              >
+                {['A', 'B', 'C', 'D'].map((option, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <RadioGroupItem value={index.toString()} id={`correct-${index}`} />
+                    <Label htmlFor={`correct-${index}`}>Option {option}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          </>
+        );
+
+      case 'true_false':
+        return (
+          <div>
+            <Label>Correct Answer</Label>
+            <RadioGroup
+              value={formData.correctAnswer.toString()}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, correctAnswer: value }))}
+              className="flex gap-4 mt-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="true" id="edit-true" />
+                <Label htmlFor="edit-true">True</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="false" id="edit-false" />
+                <Label htmlFor="edit-false">False</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        );
+
+      case 'fill_blank':
+      case 'essay':
+        return (
+          <div>
+            <Label>Correct Answer / Sample Answer</Label>
+            <Textarea
+              value={formData.correctAnswerText}
+              onChange={(e) => setFormData(prev => ({ ...prev, correctAnswerText: e.target.value }))}
+              placeholder="Enter the correct answer or sample answer..."
+              rows={formData.questionType === 'essay' ? 4 : 2}
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label>Question Type</Label>
+        <Select value={formData.questionType} onValueChange={handleQuestionTypeChange}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+            <SelectItem value="true_false">True/False</SelectItem>
+            <SelectItem value="fill_blank">Fill in the Blank</SelectItem>
+            <SelectItem value="essay">Essay</SelectItem>
+            <SelectItem value="image_based">Image-Based</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div>
         <Label>Question</Label>
         <Textarea
           value={formData.question}
           onChange={(e) => setFormData(prev => ({ ...prev, question: e.target.value }))}
           required
+          rows={3}
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label>Option A</Label>
-          <Input
-            value={formData.optionA}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              optionA: e.target.value,
-              options: [e.target.value, prev.optionB, prev.optionC, prev.optionD]
-            }))}
-            required
-          />
-        </div>
-        <div>
-          <Label>Option B</Label>
-          <Input
-            value={formData.optionB}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              optionB: e.target.value,
-              options: [prev.optionA, e.target.value, prev.optionC, prev.optionD]
-            }))}
-            required
-          />
-        </div>
-        <div>
-          <Label>Option C</Label>
-          <Input
-            value={formData.optionC}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              optionC: e.target.value,
-              options: [prev.optionA, prev.optionB, e.target.value, prev.optionD]
-            }))}
-            required
-          />
-        </div>
-        <div>
-          <Label>Option D</Label>
-          <Input
-            value={formData.optionD}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              optionD: e.target.value,
-              options: [prev.optionA, prev.optionB, prev.optionC, e.target.value]
-            }))}
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label>Correct Answer</Label>
-        <RadioGroup
-          value={formData.correctAnswer.toString()}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, correctAnswer: parseInt(value) }))}
-          className="flex flex-wrap gap-4 mt-2"
-        >
-          {['A', 'B', 'C', 'D'].map((option, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <RadioGroupItem value={index.toString()} id={`correct-${index}`} />
-              <Label htmlFor={`correct-${index}`}>Option {option}</Label>
-            </div>
-          ))}
-        </RadioGroup>
-      </div>
+      {renderQuestionTypeFields()}
 
       <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
