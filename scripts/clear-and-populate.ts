@@ -1,6 +1,6 @@
 
 import { db } from "../server/db";
-import { questions, testCodeBatches, testCodes, testResults, teacherAssignments, users, profiles } from "../shared/schema";
+import { questions, testCodeBatches, testCodes, testResults, teacherAssignments, users, profiles, subjects, classes, terms, sessions } from "../shared/schema";
 import bcrypt from "bcryptjs";
 
 async function clearAndPopulate() {
@@ -30,6 +30,54 @@ async function clearAndPopulate() {
     console.log("Cleared users");
 
     console.log("Database cleared successfully!");
+
+    // Add essential data first
+    console.log("Adding essential data...");
+    
+    // Add subjects
+    await db.insert(subjects).values([
+      { name: "Mathematics" },
+      { name: "Physics" },
+      { name: "Chemistry" },
+      { name: "Biology" },
+      { name: "English Language" },
+      { name: "Literature" },
+      { name: "Geography" },
+      { name: "Economics" },
+      { name: "Government" },
+      { name: "History" },
+      { name: "Further Mathematics" },
+      { name: "Agricultural Science" },
+      { name: "Computer Science" },
+      { name: "Technical Drawing" },
+      { name: "Fine Arts" }
+    ]);
+
+    // Add classes
+    await db.insert(classes).values([
+      { name: "SS1" },
+      { name: "SS2" },
+      { name: "SS3" },
+      { name: "JSS1" },
+      { name: "JSS2" },
+      { name: "JSS3" }
+    ]);
+
+    // Add terms
+    await db.insert(terms).values([
+      { name: "First Term" },
+      { name: "Second Term" },
+      { name: "Third Term" }
+    ]);
+
+    // Add sessions
+    await db.insert(sessions).values([
+      { name: "2023/2024", isCurrent: false },
+      { name: "2024/2025", isCurrent: true },
+      { name: "2025/2026", isCurrent: false }
+    ]);
+
+    console.log("Essential data added successfully!");
 
     // Create admin user
     console.log("Creating admin user...");
@@ -461,9 +509,13 @@ async function clearAndPopulate() {
     console.log("- Subject: English Language");
     console.log("- Section: A");
     console.log("");
+    console.log("Database population completed successfully!");
+
+    process.exit(0);
 
   } catch (error) {
     console.error("Error:", error);
+    process.exit(1);
   }
 }
 
