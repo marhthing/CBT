@@ -38,29 +38,45 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 
 // Function to shuffle options and update correct answer index
 const shuffleQuestionOptions = (question: any): Question => {
-  const options = [question.optionA, question.optionB, question.optionC, question.optionD];
-  const originalCorrectAnswer = question.correctAnswer;
+  // Only shuffle options for multiple choice and image-based questions
+  if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
+    const options = [question.optionA, question.optionB, question.optionC, question.optionD];
+    const originalCorrectAnswer = parseInt(question.correctAnswer);
 
-  // Create array of indices to track option mapping
-  const optionIndices = [0, 1, 2, 3];
-  const shuffledIndices = shuffleArray(optionIndices);
+    // Create array of indices to track option mapping
+    const optionIndices = [0, 1, 2, 3];
+    const shuffledIndices = shuffleArray(optionIndices);
 
-  // Shuffle options based on shuffled indices
-  const shuffledOptions = shuffledIndices.map(index => options[index]);
+    // Shuffle options based on shuffled indices
+    const shuffledOptions = shuffledIndices.map(index => options[index]);
 
-  // Find new position of correct answer
-  const newCorrectAnswer = shuffledIndices.indexOf(originalCorrectAnswer);
+    // Find new position of correct answer
+    const newCorrectAnswer = shuffledIndices.indexOf(originalCorrectAnswer);
 
-  return {
-    id: question.id || Math.random(),
-    question: question.question,
-    options: shuffledOptions,
-    correctAnswer: newCorrectAnswer,
-    originalCorrectAnswer: originalCorrectAnswer,
-    optionMapping: shuffledIndices,
-    scorePerQuestion: question.scorePerQuestion || 1,
-      questionType: question.questionType
-  };
+    return {
+      id: question.id || Math.random(),
+      question: question.question,
+      options: shuffledOptions,
+      correctAnswer: newCorrectAnswer,
+      originalCorrectAnswer: originalCorrectAnswer,
+      optionMapping: shuffledIndices,
+      scorePerQuestion: question.scorePerQuestion || 1,
+      questionType: question.questionType,
+      imageUrl: question.imageUrl
+    };
+  } else {
+    // For other question types, don't shuffle anything
+    return {
+      id: question.id || Math.random(),
+      question: question.question,
+      options: [],
+      correctAnswer: question.correctAnswer,
+      correctAnswerText: question.correctAnswerText,
+      scorePerQuestion: question.scorePerQuestion || 1,
+      questionType: question.questionType,
+      imageUrl: question.imageUrl
+    };
+  }
 };
 
 const TakeTest = () => {
@@ -343,9 +359,20 @@ const TakeTest = () => {
   };
 
   const handleAnswerChange = (value: string) => {
+    const question = testData?.questions[currentQuestion];
+    if (!question) return;
+
+    let answerValue: any = value;
+    
+    // For multiple choice and image-based questions, convert to number
+    if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
+      answerValue = parseInt(value);
+    }
+    // For true/false, fill_blank, and essay, keep as string
+    
     setAnswers(prev => ({
       ...prev,
-      [currentQuestion]: parseInt(value)
+      [currentQuestion]: answerValue
     }));
   };
 
@@ -406,7 +433,20 @@ const TakeTest = () => {
 
       // Check if student's answer is correct
       const studentAnswer = answers[index];
-      const isCorrect = studentAnswer === question.correctAnswer;
+      let isCorrect = false;
+      
+      if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
+        // For multiple choice, compare as numbers
+        isCorrect = studentAnswer === question.correctAnswer;
+      } else if (question.questionType === 'true_false') {
+        // For true/false, compare as strings
+        isCorrect = studentAnswer?.toString() === question.correctAnswer?.toString();
+      } else if (question.questionType === 'fill_blank' || question.questionType === 'essay') {
+        // For text answers, do case-insensitive comparison
+        const studentText = studentAnswer?.toString().trim().toLowerCase();
+        const correctText = question.correctAnswerText?.trim().toLowerCase();
+        isCorrect = studentText === correctText;
+      }
 
       if (isCorrect) {
         correctAnswers++;
@@ -414,8 +454,13 @@ const TakeTest = () => {
       }
 
       // Map the student's shuffled answer back to original option index for storage
-      if (studentAnswer !== undefined && question.optionMapping) {
-        mappedAnswers[index] = question.optionMapping[studentAnswer];
+      if (studentAnswer !== undefined) {
+        if ((question.questionType === 'multiple_choice' || question.questionType === 'image_based') && question.optionMapping) {
+          mappedAnswers[index] = question.optionMapping[studentAnswer];
+        } else {
+          // For other question types, store the answer directly
+          mappedAnswers[index] = studentAnswer;
+        }
       }
     });
 

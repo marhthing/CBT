@@ -221,11 +221,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Transform correctAnswer to string if it's a number
+      // Transform correctAnswer based on question type
       const requestBody = { ...req.body };
-      if (typeof requestBody.correctAnswer === 'number') {
-        requestBody.correctAnswer = requestBody.correctAnswer.toString();
+      if (requestBody.questionType === 'multiple_choice' || requestBody.questionType === 'image_based') {
+        // For multiple choice and image-based, ensure it's a string representation of a number
+        if (typeof requestBody.correctAnswer === 'number') {
+          requestBody.correctAnswer = requestBody.correctAnswer.toString();
+        }
+      } else if (requestBody.questionType === 'true_false') {
+        // For true/false, ensure it's a string
+        requestBody.correctAnswer = requestBody.correctAnswer?.toString();
       }
+      // For fill_blank and essay, correctAnswer might be empty and correctAnswerText is used instead
 
       const validatedData = insertQuestionSchema.parse({
         ...requestBody,
@@ -265,11 +272,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdQuestions = [];
 
       for (const questionData of questions) {
-        // Transform correctAnswer to string if it's a number
+        // Transform correctAnswer based on question type
         const processedQuestionData = { ...questionData };
-        if (typeof processedQuestionData.correctAnswer === 'number') {
-          processedQuestionData.correctAnswer = processedQuestionData.correctAnswer.toString();
+        if (processedQuestionData.questionType === 'multiple_choice' || processedQuestionData.questionType === 'image_based') {
+          // For multiple choice and image-based, ensure it's a string representation of a number
+          if (typeof processedQuestionData.correctAnswer === 'number') {
+            processedQuestionData.correctAnswer = processedQuestionData.correctAnswer.toString();
+          }
+        } else if (processedQuestionData.questionType === 'true_false') {
+          // For true/false, ensure it's a string
+          processedQuestionData.correctAnswer = processedQuestionData.correctAnswer?.toString();
         }
+        // For fill_blank and essay, correctAnswer might be empty and correctAnswerText is used instead
 
         const validatedData = insertQuestionSchema.parse({
           ...processedQuestionData,
@@ -306,10 +320,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You can only edit your own questions" });
       }
 
-      // Transform correctAnswer to string if it's a number
+      // Transform correctAnswer based on question type
       const requestBody = { ...req.body };
-      if (typeof requestBody.correctAnswer === 'number') {
-        requestBody.correctAnswer = requestBody.correctAnswer.toString();
+      if (requestBody.questionType === 'multiple_choice' || requestBody.questionType === 'image_based') {
+        // For multiple choice and image-based, ensure it's a string representation of a number
+        if (typeof requestBody.correctAnswer === 'number') {
+          requestBody.correctAnswer = requestBody.correctAnswer.toString();
+        }
+      } else if (requestBody.questionType === 'true_false') {
+        // For true/false, ensure it's a string
+        requestBody.correctAnswer = requestBody.correctAnswer?.toString();
       }
 
       const validatedData = insertQuestionSchema.parse({
