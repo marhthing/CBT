@@ -87,10 +87,13 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
 
     const handleVisibilityChange = () => {
       if (document.hidden && isSecureMode) {
-        const violation = `Tab switched or window minimized at ${new Date().toLocaleTimeString()}`;
-        setTabSwitchCount(prev => prev + 1);
-        setViolations(prev => [...prev, violation]);
-        onSecurityViolation(violation);
+        // Add a small delay to prevent interference with modal operations
+        setTimeout(() => {
+          const violation = `Tab switched or window minimized at ${new Date().toLocaleTimeString()}`;
+          setTabSwitchCount(prev => prev + 1);
+          setViolations(prev => [...prev, violation]);
+          onSecurityViolation(violation);
+        }, 100);
       }
     };
 
@@ -99,9 +102,12 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
       setIsFullscreen(isCurrentlyFullscreen);
 
       if (!isCurrentlyFullscreen && isSecureMode && isTestActive && !isMobile) {
-        const violation = `Exited fullscreen at ${new Date().toLocaleTimeString()}`;
-        setViolations(prev => [...prev, violation]);
-        onSecurityViolation(violation);
+        // Add delay to prevent interference with legitimate UI operations
+        setTimeout(() => {
+          const violation = `Exited fullscreen at ${new Date().toLocaleTimeString()}`;
+          setViolations(prev => [...prev, violation]);
+          onSecurityViolation(violation);
+        }, 200);
       }
     };
 
