@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { AlertTriangle, Shield, Eye, Smartphone } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +30,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
                      'ontouchstart' in window;
       setIsMobile(mobile);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -49,7 +48,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
           console.warn('Fullscreen not available:', error);
         }
       }
-      
+
       setIsSecureMode(true);
 
       // For mobile, add viewport meta tag to prevent zooming
@@ -98,7 +97,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement;
       setIsFullscreen(isCurrentlyFullscreen);
-      
+
       if (!isCurrentlyFullscreen && isSecureMode && isTestActive && !isMobile) {
         const violation = `Exited fullscreen at ${new Date().toLocaleTimeString()}`;
         setViolations(prev => [...prev, violation]);
@@ -156,7 +155,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
         if (e.altKey) keys.push('Alt');
         if (e.metaKey) keys.push('Cmd');
         keys.push(e.key);
-        
+
         const violation = `Attempted blocked combination: ${keys.join('+')}`;
         setViolations(prev => [...prev, violation]);
         onSecurityViolation(violation);
@@ -175,7 +174,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     // Mobile-specific touch handling
     const handleTouchStart = (e: TouchEvent) => {
       if (!isSecureMode || !isMobile) return;
-      
+
       // Detect multi-touch (potential screenshot gesture)
       if (e.touches.length > 1) {
         e.preventDefault();
@@ -192,7 +191,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
       document.addEventListener('keydown', handleKeyDown);
     }
     document.addEventListener('contextmenu', handleContextMenu);
-    
+
     if (isMobile) {
       document.addEventListener('touchstart', handleTouchStart, { passive: false });
     }
@@ -297,7 +296,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
                 </ul>
               </AlertDescription>
             </Alert>
-            
+
             <Button 
               onClick={enterSecureMode} 
               className="w-full bg-red-600 hover:bg-red-700"
@@ -338,7 +337,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Test Content */}
       <div className={`p-4 ${isMobile ? 'touch-manipulation' : ''}`}>
         {children}
