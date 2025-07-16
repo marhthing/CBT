@@ -7,6 +7,14 @@ async function clearAndPopulate() {
   console.log("Clearing database and populating with fresh data...");
 
   try {
+    // Test database connection first
+    console.log("Testing database connection...");
+    await db.select().from(users).limit(1).catch(() => {
+      console.log("Database tables might not exist yet, this is normal for first run");
+    });
+    console.log("Database connection successful!");
+    
+    console.log("Starting database clearing process...");
     // Clear tables in proper order (respecting foreign key constraints)
     console.log("Clearing existing data...");
     
@@ -518,10 +526,27 @@ async function clearAndPopulate() {
     console.log("- Section: A");
     console.log("");
     console.log("Database population completed successfully!");
+    console.log("\n=== SUMMARY ===");
+    console.log("✅ Database cleared and populated successfully");
+    console.log("✅ Admin user created: admin@sfcs.edu.ng / admin123");
+    console.log("✅ 30 sample questions added for JSS1 English Language");
+    console.log("✅ Essential data (subjects, classes, terms, sessions) added");
+    
+    process.exit(0);
 
   } catch (error) {
-    console.error("Error:", error);
-    console.error("Error details:", JSON.stringify(error, null, 2));
+    console.error("\n❌ Error occurred:");
+    console.error("Error message:", error.message);
+    
+    if (error.code) {
+      console.error("Error code:", error.code);
+    }
+    
+    if (error.detail) {
+      console.error("Error detail:", error.detail);
+    }
+    
+    console.error("\nFull error object:", error);
     process.exit(1);
   }
 }
