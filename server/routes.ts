@@ -960,58 +960,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No results found for the selected filters" });
       }
 
-      // Generate PDF using jsPDF
-      const jsPDF = require('jspdf').jsPDF;
-      require('jspdf-autotable');
+      // Generate PDF using html-pdf-node
+      const pdf = require('html-pdf-node');
 
-      const doc = new jsPDF();
+      // Create HTML content for the PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Test Results Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; text-align: center; }
+            .header-info { margin: 20px 0; }
+            .header-info p { margin: 5px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #428bca; color: white; }
+            tr:nth-child(even) { background-color: #f2f2f2; }
+          </style>
+        </head>
+        <body>
+          <h1>Test Results Report</h1>
+          <div class="header-info">
+            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Class:</strong> ${className}</p>
+            <p><strong>Term:</strong> ${term}</p>
+            <p><strong>Session:</strong> ${sessionName}</p>
+            <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Test Type</th>
+                <th>Score</th>
+                <th>Total</th>
+                <th>Percentage</th>
+                <th>Time Taken</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${results.map(result => {
+                const percentage = Math.round((result.score / result.totalPossibleScore) * 100);
+                const timeTaken = result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A';
+                const date = new Date(result.createdAt).toLocaleDateString();
+                
+                return `
+                  <tr>
+                    <td>${result.studentName}</td>
+                    <td>${result.testCodes.testType}</td>
+                    <td>${result.score}</td>
+                    <td>${result.totalPossibleScore}</td>
+                    <td>${percentage}%</td>
+                    <td>${timeTaken}</td>
+                    <td>${date}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
 
-      // Add title
-      doc.setFontSize(18);
-      doc.text('Test Results Report', 14, 22);
-
-      // Add filter information
-      doc.setFontSize(12);
-      let yPos = 35;
-      doc.text(`Subject: ${subject}`, 14, yPos);
-      yPos += 7;
-      doc.text(`Class: ${className}`, 14, yPos);
-      yPos += 7;
-      doc.text(`Term: ${term}`, 14, yPos);
-      yPos += 7;
-      doc.text(`Session: ${sessionName}`, 14, yPos);
-      yPos += 7;
-      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, yPos);
-
-      // Prepare table data
-      const tableData = results.map(result => {
-        const percentage = Math.round((result.score / result.totalPossibleScore) * 100);
-        const timeTaken = result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A';
-        const date = new Date(result.createdAt).toLocaleDateString();
-        
-        return [
-          result.studentName,
-          result.testCodes.testType,
-          result.score.toString(),
-          result.totalPossibleScore.toString(),
-          `${percentage}%`,
-          timeTaken,
-          date
-        ];
-      });
-
-      // Add table
-      doc.autoTable({
-        head: [['Student Name', 'Test Type', 'Score', 'Total', 'Percentage', 'Time Taken', 'Date']],
-        body: tableData,
-        startY: yPos + 10,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [66, 139, 202] },
-        margin: { top: 10 },
-      });
+      const options = { format: 'A4' };
+      const file = { content: htmlContent };
 
       // Generate PDF buffer
-      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+      const pdfBuffer = await pdf.generatePdf(file, options);
 
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
