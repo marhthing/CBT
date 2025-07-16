@@ -130,7 +130,7 @@ const ExportResults = () => {
     }
   };
 
-  const handleExportPDF = async () => {
+  const handleExportCSV = async () => {
     if (filteredResults.length === 0) {
       toast({
         title: "Error",
@@ -147,7 +147,7 @@ const ExportResults = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to export PDF');
+        throw new Error('Failed to export CSV');
       }
 
       const blob = await response.blob();
@@ -155,20 +155,21 @@ const ExportResults = () => {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `results_${filters.subject}_${filters.class}_${filters.term}_${filters.session}.pdf`;
+      a.download = `results_${filters.subject}_${filters.class}_${filters.term}_${filters.session}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
         title: "Success",
-        description: "PDF exported successfully",
+        description: "CSV exported successfully",
       });
     } catch (error) {
-      console.error('Error exporting PDF:', error);
+      console.error('Error exporting CSV:', error);
       toast({
         title: "Error",
-        description: "Failed to export PDF",
+        description: "Failed to export CSV",
         variant: "destructive"
       });
     }
@@ -189,7 +190,7 @@ const ExportResults = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Export Test Results</h1>
-          <p className="text-gray-600 mt-2">Filter and export test results to PDF</p>
+          <p className="text-gray-600 mt-2">Filter and export test results to CSV</p>
         </div>
 
         <Card>
@@ -272,12 +273,12 @@ const ExportResults = () => {
               </Button>
               
               <Button 
-                onClick={handleExportPDF} 
+                onClick={handleExportCSV} 
                 variant="outline"
                 disabled={filteredResults.length === 0}
               >
                 <FileDown className="h-4 w-4 mr-2" />
-                Export PDF
+                Export CSV
               </Button>
             </div>
           </CardContent>

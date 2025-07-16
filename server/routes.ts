@@ -829,6 +829,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PDF export endpoint for test results
+  app.get('/api/test-results/export-pdf', requireAuth, async (req, res) => {
+    try {
+      const profile = req.session.profile;
+
+      if (profile.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const { subject, class: className, term, session: sessionName } = req.query;
+
+      // Get the filtered results
+      let query = db
+        .select({
+          id: testResults.id,
+          score: testResults.score,
+          totalPossibleScore: testResults.totalPossibleScore,
+          timeTaken: testResults.timeTaken,
+          createdAt: testResults.createdAt,
+          studentName: sql<string>`COALESCE(profiles.full_name, profiles.email)`,
+          testCodes: {
+            subject: testCodes.subject,
+            term: testCodes.term,
+            class: testCodes.class,
+            session: testCodes.session,
+            testType: testCodes.testType
+          }
+        })
+        .from(testResults)
+        .leftJoin(testCodes, eq(testResults.testCodeId, testCodes.id))
+        .leftJoin(profiles, eq(testResults.studentId, profiles.userId));
+
+      const conditions = [];
+      if (subject) conditions.push(eq(testCodes.subject, subject as string));
+      if (className) conditions.push(eq(testCodes.class, className as string));
+      if (term) conditions.push(eq(testCodes.term, term as string));
+      if (sessionName) conditions.push(eq(testCodes.session, sessionName as string));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      const results = await query;
+
+      if (results.length === 0) {
+        return res.status(400).json({ error: "No results found for the selected filters" });
+      }
+
+      // Generate CSV content
+      const csvHeaders = ['Student Name', 'Subject', 'Class', 'Term', 'Session', 'Test Type', 'Score', 'Total Possible Score', 'Percentage', 'Time Taken', 'Date'];
+      const csvRows = results.map(result => {
+        const percentage = Math.round((result.score / result.totalPossibleScore) * 100);
+        const timeTaken = result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A';
+        const date = new Date(result.createdAt).toLocaleDateString();
+        
+        return [
+          result.studentName,
+          result.testCodes.subject,
+          result.testCodes.class,
+          result.testCodes.term,
+          result.testCodes.session,
+          result.testCodes.testType,
+          result.score.toString(),
+          result.totalPossibleScore.toString(),
+          `${percentage}%`,
+          timeTaken,
+          date
+        ].map(field => `"${field}"`).join(',');
+      });
+
+      const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="test_results_${subject}_${className}_${term}_${sessionName}.csv"`);
+      
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Export PDF error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
 // Get all test codes with batch info
 app.get("/api/test-codes", requireAuth, async (req, res) => {
   try {
