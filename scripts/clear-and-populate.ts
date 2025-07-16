@@ -50,6 +50,7 @@ async function clearAndPopulateDatabase() {
     console.log("Populating with JSS1 English Language questions...");
 
     const jss1EnglishQuestions = [
+      // Multiple Choice Questions
       {
         question: "What is a noun?",
         questionType: "multiple_choice",
@@ -230,95 +231,64 @@ async function clearAndPopulateDatabase() {
         optionD: "Cup",
         correctAnswer: "B"
       },
+      // True/False Questions
       {
-        question: "What is the present continuous form of 'eat'?",
-        questionType: "multiple_choice",
-        optionA: "Ate",
-        optionB: "Eaten",
-        optionC: "Eating",
-        optionD: "Eats",
-        correctAnswer: "C"
+        question: "A noun is a word that names a person, place, or thing.",
+        questionType: "true_false",
+        correctAnswer: "true"
       },
       {
-        question: "Choose the correct preposition: 'The book is ___ the table'",
-        questionType: "multiple_choice",
-        optionA: "In",
-        optionB: "On",
-        optionC: "At",
-        optionD: "By",
+        question: "The word 'quickly' is a noun.",
+        questionType: "true_false",
+        correctAnswer: "false"
+      },
+      {
+        question: "Every sentence must end with a period.",
+        questionType: "true_false",
+        correctAnswer: "false"
+      },
+      {
+        question: "The word 'beautiful' is an adjective.",
+        questionType: "true_false",
+        correctAnswer: "true"
+      },
+      {
+        question: "Verbs show action or state of being.",
+        questionType: "true_false",
+        correctAnswer: "true"
+      },
+      // Fill in the Blank Questions
+      {
+        question: "Complete the sentence: The _____ is shining brightly today.",
+        questionType: "fill_blank",
+        correctAnswerText: "sun"
+      },
+      {
+        question: "Fill in the blank: I _____ my homework every day.",
+        questionType: "fill_blank",
+        correctAnswerText: "do"
+      },
+      {
+        question: "Complete: She _____ to school by bus.",
+        questionType: "fill_blank",
+        correctAnswerText: "goes"
+      },
+      // Essay Questions
+      {
+        question: "Write a short paragraph (3-4 sentences) about your favorite animal.",
+        questionType: "essay",
+        correctAnswerText: "Sample answer: My favorite animal is a dog. Dogs are loyal and friendly pets. They love to play and protect their families. I enjoy playing with dogs because they are fun and loving companions."
+      },
+      // Image-based Questions
+      {
+        question: "Look at the image and identify the part of speech for the word 'run':",
+        questionType: "image_based",
+        imageUrl: "https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=400&h=300&fit=crop",
+        optionA: "Noun",
+        optionB: "Verb",
+        optionC: "Adjective",
+        optionD: "Adverb",
         correctAnswer: "B"
-      },
-      {
-        question: "What is the female of 'king'?",
-        questionType: "multiple_choice",
-        optionA: "Kingness",
-        optionB: "Queen",
-        optionC: "Princess",
-        optionD: "Lady",
-        correctAnswer: "B"
-      },
-      {
-        question: "Which is a proper noun?",
-        questionType: "multiple_choice",
-        optionA: "boy",
-        optionB: "school",
-        optionC: "Nigeria",
-        optionD: "book",
-        correctAnswer: "C"
-      },
-      {
-        question: "What do we call words that sound the same but have different meanings?",
-        questionType: "multiple_choice",
-        optionA: "Synonyms",
-        optionB: "Antonyms",
-        optionC: "Homophones",
-        optionD: "Adjectives",
-        correctAnswer: "C"
-      },
-      {
-        question: "Choose the correct form: 'There ___ many books on the shelf'",
-        questionType: "multiple_choice",
-        optionA: "Is",
-        optionB: "Are",
-        optionC: "Was",
-        optionD: "Been",
-        correctAnswer: "B"
-      },
-      {
-        question: "What is the past tense of 'write'?",
-        questionType: "multiple_choice",
-        optionA: "Writed",
-        optionB: "Written",
-        optionC: "Wrote",
-        optionD: "Writing",
-        correctAnswer: "C"
-      },
-      {
-        question: "Which word is spelled correctly?",
-        questionType: "multiple_choice",
-        optionA: "Seperate",
-        optionB: "Separate",
-        optionC: "Seperete",
-        optionD: "Separete",
-        correctAnswer: "B"
-      },
-      {
-        question: "What is a common noun?",
-        questionType: "multiple_choice",
-        optionA: "A specific name of a person",
-        optionB: "A general name for things",
-        optionC: "A describing word",
-        optionD: "An action word",
-        correctAnswer: "B"
-      },
-      {
-        question: "Choose the correct sentence:",
-        questionType: "multiple_choice",
-        optionA: "Me and John are friends",
-        optionB: "John and me are friends",
-        optionC: "John and I are friends",
-        optionD: "I and John are friends",
-        correctAnswer: "C"
       }
     ];
 
@@ -335,11 +305,13 @@ async function clearAndPopulateDatabase() {
         session: "2024/2025",
         question: questionData.question,
         questionType: questionData.questionType,
-        optionA: questionData.optionA,
-        optionB: questionData.optionB,
-        optionC: questionData.optionC,
-        optionD: questionData.optionD,
-        correctAnswer: questionData.correctAnswer,
+        optionA: questionData.optionA || null,
+        optionB: questionData.optionB || null,
+        optionC: questionData.optionC || null,
+        optionD: questionData.optionD || null,
+        correctAnswer: questionData.correctAnswer || null,
+        correctAnswerText: questionData.correctAnswerText || null,
+        imageUrl: questionData.imageUrl || null,
         scorePerQuestion: 1
       });
     }
