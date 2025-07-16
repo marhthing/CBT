@@ -72,11 +72,27 @@ const AdminDashboard = () => {
     subjectBreakdown: {},
     classBreakdown: {}
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [allTestAnalytics, setAllTestAnalytics] = useState<TestAnalyticsByGroup[]>([]);
 
   useEffect(() => {
     fetchStats();
     fetchTestAnalytics();
   }, []);
+
+  useEffect(() => {
+    // Apply search filter
+    if (searchTerm) {
+      const filteredAnalytics = allTestAnalytics.filter((analytics) => {
+        const searchStr = `${analytics.subject} ${analytics.class} ${analytics.term} ${analytics.session}`.toLowerCase();
+        return searchStr.includes(searchTerm.toLowerCase());
+      });
+      setTestAnalyticsByGroup(filteredAnalytics);
+    } else {
+      // If search term is empty, show only the last 3 results
+      setTestAnalyticsByGroup(allTestAnalytics.slice(0, 3));
+    }
+  }, [searchTerm, allTestAnalytics]);
 
   const fetchStats = async () => {
     try {
@@ -119,10 +135,10 @@ const AdminDashboard = () => {
       if (response.ok) {
         const tests = await response.json();
         console.log('Fetched test results:', tests.length);
-        
+
         // Group tests by class + session + term + subject combination
         const testGroups: { [key: string]: any[] } = {};
-        
+
         tests.forEach((test: any) => {
           if (test.testCodes && test.totalPossibleScore > 0) {
             const key = `${test.testCodes.class}_${test.testCodes.session}_${test.testCodes.term}_${test.testCodes.subject}`;
@@ -137,14 +153,14 @@ const AdminDashboard = () => {
         const analytics: TestAnalyticsByGroup[] = Object.entries(testGroups).map(([key, groupTests]) => {
           const firstTest = groupTests[0];
           const passThreshold = 50; // 50% pass rate
-          
+
           const scores = groupTests.map((test: any) => (test.score / test.totalPossibleScore) * 100);
           const passCount = scores.filter(score => score >= passThreshold).length;
           const failCount = groupTests.length - passCount;
-          
+
           // Get the most recent test date
           const latestDate = Math.max(...groupTests.map((test: any) => new Date(test.createdAt).getTime()));
-          
+
           return {
             testKey: key,
             subject: firstTest.testCodes.subject,
@@ -171,23 +187,26 @@ const AdminDashboard = () => {
           return b.totalParticipation - a.totalParticipation;
         });
 
-        setTestAnalyticsByGroup(analytics);
+        // Only show last 3 results by default (when not searching)
+        setTestAnalyticsByGroup(analytics.slice(0, 3));
+        setAllTestAnalytics(analytics);
+
 
         // Calculate overall analysis for all tests
         if (tests.length > 0) {
           const validTests = tests.filter((test: any) => test.testCodes && test.totalPossibleScore > 0);
-          
+
           const scores = validTests.map((test: any) => (test.score / test.totalPossibleScore) * 100);
           const passThreshold = 50; // 50% pass rate
           const passCount = scores.filter(score => score >= passThreshold).length;
-          
+
           const subjectBreakdown: { [key: string]: number } = {};
           const classBreakdown: { [key: string]: number } = {};
-          
+
           validTests.forEach((test: any) => {
             const subject = test.testCodes?.subject || 'Unknown';
             const className = test.testCodes?.class || 'Unknown';
-            
+
             subjectBreakdown[subject] = (subjectBreakdown[subject] || 0) + 1;
             classBreakdown[className] = (classBreakdown[className] || 0) + 1;
           });
@@ -229,7 +248,7 @@ const AdminDashboard = () => {
     return 'text-red-600';
   };
 
-  
+
 
   if (loading) {
     return (
@@ -312,7 +331,7 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        
+
 
         {/* Test Analytics by Group */}
         <Card>
@@ -322,6 +341,13 @@ const AdminDashboard = () => {
               Test Analytics by Class/Subject/Term/Session
             </CardTitle>
           </CardHeader>
+          <input
+              type="text"
+              placeholder="Search by Class, Subject, Term, Session"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="border p-2 rounded w-full mb-4"
+            />
           <CardContent>
             {loadingTests ? (
               <div className="flex items-center justify-center py-8">
@@ -333,7 +359,7 @@ const AdminDashboard = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {testAnalyticsByGroup.slice(0, 10).map((analytics) => (
+                {testAnalyticsByGroup.map((analytics) => (
                   <div key={analytics.testKey} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex flex-col gap-4">
                       <div className="flex-1 min-w-0">
@@ -352,7 +378,7 @@ const AdminDashboard = () => {
                           Last test: {analytics.lastTestDate}
                         </p>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                         <div className="bg-blue-50 p-3 rounded-lg">
                           <div className="text-xl md:text-2xl font-bold text-blue-600">
@@ -360,7 +386,7 @@ const AdminDashboard = () => {
                           </div>
                           <div className="text-xs text-gray-600">Total Participation</div>
                         </div>
-                        
+
                         <div className="bg-green-50 p-3 rounded-lg">
                           <div className="text-xl font-bold text-green-600">
                             {analytics.passCount}
@@ -369,7 +395,7 @@ const AdminDashboard = () => {
                             Pass ({analytics.passPercentage}%)
                           </div>
                         </div>
-                        
+
                         <div className="bg-red-50 p-3 rounded-lg">
                           <div className="text-xl font-bold text-red-600">
                             {analytics.failCount}
@@ -378,7 +404,7 @@ const AdminDashboard = () => {
                             Fail ({analytics.failPercentage}%)
                           </div>
                         </div>
-                        
+
                         <div className="bg-gray-50 p-3 rounded-lg">
                           <div className="text-xl font-bold text-gray-600">
                             {analytics.averageScore}%
@@ -392,12 +418,17 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 ))}
-                
-                {testAnalyticsByGroup.length > 10 && (
+
+                {allTestAnalytics.length > 3 && !searchTerm && (
                   <div className="text-center pt-4">
                     <p className="text-sm text-gray-500">
-                      Showing top 10 results. Go to Export Results for complete data.
+                      Showing top 3 results. Go to Export Results for complete data.
                     </p>
+                  </div>
+                )}
+                {searchTerm && testAnalyticsByGroup.length === 0 && (
+                  <div className="text-center py-4 text-gray-500">
+                    No results found for "{searchTerm}"
                   </div>
                 )}
               </div>
