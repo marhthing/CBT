@@ -139,24 +139,22 @@ const ExportResults = () => {
     }
   };
 
-  const handleExportCSV = async () => {
-    if (filteredResults.length === 0) {
-      toast({
-        title: "Error",
-        description: "No results to export. Please filter results first.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const [exportingCSV, setExportingCSV] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingQuestions, setExportingQuestions] = useState(false);
 
+  const handleExportCSV = async () => {
     try {
+      setExportingCSV(true);
+
       const params = new URLSearchParams(filters);
       const response = await fetch(`/api/test-results/export-csv?${params}`, {
         credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error('Failed to export CSV');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to export CSV');
       }
 
       const blob = await response.blob();
@@ -178,30 +176,26 @@ const ExportResults = () => {
       console.error('Error exporting CSV:', error);
       toast({
         title: "Error",
-        description: "Failed to export CSV",
+        description: error instanceof Error ? error.message : "Failed to export CSV",
         variant: "destructive"
       });
+    } finally {
+      setExportingCSV(false);
     }
   };
 
   const handleExportPDF = async () => {
-    if (filteredResults.length === 0) {
-      toast({
-        title: "Error",
-        description: "No results to export. Please filter results first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
+      setExportingPDF(true);
+
       const params = new URLSearchParams(filters);
       const response = await fetch(`/api/test-results/export-pdf?${params}`, {
         credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error('Failed to export PDF');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to export PDF');
       }
 
       const blob = await response.blob();
@@ -223,15 +217,27 @@ const ExportResults = () => {
       console.error('Error exporting PDF:', error);
       toast({
         title: "Error",
-        description: "Failed to export PDF",
+        description: error instanceof Error ? error.message : "Failed to export PDF",
         variant: "destructive"
       });
+    } finally {
+      setExportingPDF(false);
     }
   };
 
   const handleExportQuestions = async () => {
-    setIsExporting(true);
     try {
+      setExportingQuestions(true);
+
+      if (!questionFilters.subject || !questionFilters.class || !questionFilters.term) {
+        toast({
+          title: "Error",
+          description: "Please select subject, class, and term filters first",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const params = new URLSearchParams();
       if (questionFilters.subject) params.append('subject', questionFilters.subject);
       if (questionFilters.class) params.append('class', questionFilters.class);
@@ -242,7 +248,8 @@ const ExportResults = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to export questions');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to export questions');
       }
 
       const blob = await response.blob();
@@ -254,6 +261,7 @@ const ExportResults = () => {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
         title: "Success",
@@ -263,11 +271,11 @@ const ExportResults = () => {
       console.error('Error exporting questions:', error);
       toast({
         title: "Error",
-        description: "Failed to export questions",
+        description: error instanceof Error ? error.message : "Failed to export questions",
         variant: "destructive"
       });
     } finally {
-      setIsExporting(false);
+      setExportingQuestions(false);
     }
   };
 
@@ -412,19 +420,37 @@ const ExportResults = () => {
                 <Button 
                   onClick={handleExportCSV} 
                   variant="outline"
-                  disabled={filteredResults.length === 0}
+                  disabled={filteredResults.length === 0 || exportingCSV}
                 >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Download CSV
+                  {exportingCSV ? (
+                      <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Exporting CSV...
+                      </>
+                  ) : (
+                      <>
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Download CSV
+                      </>
+                  )}
                 </Button>
 
                 <Button 
                   onClick={handleExportPDF} 
                   variant="outline"
-                  disabled={filteredResults.length === 0}
+                  disabled={filteredResults.length === 0 || exportingPDF}
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Download PDF
+                    {exportingPDF ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Exporting PDF...
+                        </>
+                    ) : (
+                        <>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Download PDF
+                        </>
+                    )}
                 </Button>
               </div>
             </div>
@@ -537,10 +563,10 @@ const ExportResults = () => {
 
             <Button
               onClick={handleExportQuestions}
-              disabled={isExporting}
+              disabled={exportingQuestions}
               className="w-full"
             >
-              {isExporting ? (
+              {exportingQuestions ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Exporting...
