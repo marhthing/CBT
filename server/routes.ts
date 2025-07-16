@@ -961,7 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate PDF using jsPDF
-      const { jsPDF } = require('jspdf');
+      const jsPDF = require('jspdf').jsPDF;
       require('jspdf-autotable');
 
       const doc = new jsPDF();
