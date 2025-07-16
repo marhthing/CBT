@@ -14,7 +14,7 @@ import {
   teacherAssignments, 
   testCodeBatches 
 } from "../shared/schema";
-import bcrypt from "bcryptjs";
+import * as bcrypt from "bcryptjs";
 
 async function setupDatabase() {
   console.log("🚀 Setting up database schema and initial data...");
