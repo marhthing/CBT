@@ -221,8 +221,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Transform correctAnswer to string if it's a number
+      const requestBody = { ...req.body };
+      if (typeof requestBody.correctAnswer === 'number') {
+        requestBody.correctAnswer = requestBody.correctAnswer.toString();
+      }
+
       const validatedData = insertQuestionSchema.parse({
-        ...req.body,
+        ...requestBody,
         teacherId: req.session.user.id
       });
 
@@ -259,8 +265,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdQuestions = [];
 
       for (const questionData of questions) {
+        // Transform correctAnswer to string if it's a number
+        const processedQuestionData = { ...questionData };
+        if (typeof processedQuestionData.correctAnswer === 'number') {
+          processedQuestionData.correctAnswer = processedQuestionData.correctAnswer.toString();
+        }
+
         const validatedData = insertQuestionSchema.parse({
-          ...questionData,
+          ...processedQuestionData,
           teacherId: req.session.user.id
         });
 
@@ -294,8 +306,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You can only edit your own questions" });
       }
 
+      // Transform correctAnswer to string if it's a number
+      const requestBody = { ...req.body };
+      if (typeof requestBody.correctAnswer === 'number') {
+        requestBody.correctAnswer = requestBody.correctAnswer.toString();
+      }
+
       const validatedData = insertQuestionSchema.parse({
-        ...req.body,
+        ...requestBody,
         teacherId: existingQuestion.teacherId
       });
 

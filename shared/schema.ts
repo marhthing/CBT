@@ -193,6 +193,13 @@ export const insertQuestionSchema = createInsertSchema(questions).pick({
   scorePerQuestion: true,
   editedBy: true,
   editedAt: true,
+}).extend({
+  correctAnswer: z.union([z.string(), z.number()]).optional().transform((val) => {
+    if (typeof val === 'number') {
+      return val.toString();
+    }
+    return val;
+  }),
 });
 
 export const insertTestCodeBatchSchema = createInsertSchema(testCodeBatches).pick({
