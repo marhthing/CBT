@@ -239,9 +239,9 @@ const ExportResults = () => {
       }
 
       const params = new URLSearchParams();
-      if (questionFilters.subject) params.append('subject', questionFilters.subject);
-      if (questionFilters.class) params.append('class', questionFilters.class);
-      if (questionFilters.term) params.append('term', questionFilters.term);
+      if (questionFilters.subject && questionFilters.subject !== 'all') params.append('subject', questionFilters.subject);
+      if (questionFilters.class && questionFilters.class !== 'all') params.append('class', questionFilters.class);
+      if (questionFilters.term && questionFilters.term !== 'all') params.append('term', questionFilters.term);
 
       const response = await fetch(`/api/questions/export?${params.toString()}`, {
         credentials: 'include'
@@ -510,7 +510,7 @@ const ExportResults = () => {
                     <SelectValue placeholder="All subjects" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All subjects</SelectItem>
+                    <SelectItem value="all">All subjects</SelectItem>
                     {subjects.map((subject) => (
                       <SelectItem key={subject.id} value={subject.name}>
                         {subject.name}
@@ -530,7 +530,7 @@ const ExportResults = () => {
                     <SelectValue placeholder="All classes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All classes</SelectItem>
+                    <SelectItem value="all">All classes</SelectItem>
                     {classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.name}>
                         {cls.name}
@@ -550,7 +550,7 @@ const ExportResults = () => {
                     <SelectValue placeholder="All terms" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All terms</SelectItem>
+                    <SelectItem value="all">All terms</SelectItem>
                     {terms.map((term) => (
                       <SelectItem key={term.id} value={term.name}>
                         {term.name}
