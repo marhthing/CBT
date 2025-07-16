@@ -89,6 +89,7 @@ const TakeTest = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [securityViolations, setSecurityViolations] = useState<string[]>([]);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (step === "test" && timeLeft > 0) {
@@ -384,12 +385,13 @@ const TakeTest = () => {
   };
 
   const handleRequestSubmit = () => {
-    handleSubmitTest();
+    setShowSubmitModal(true);
   };
 
   const handleSubmitTest = async () => {
     if (!testData || !user || !testMetadata || submitting) return;
 
+    setShowSubmitModal(false);
     setSubmitting(true);
     let correctAnswers = 0;
     let totalScore = 0;
@@ -670,6 +672,40 @@ const TakeTest = () => {
               </Button>
             )}
           </div>
+
+          <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Submit Test</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to submit your test? You cannot make changes after submission.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSubmitModal(false)}
+                  className="w-full sm:w-auto"
+                >
+                  Continue Testing
+                </Button>
+                <Button
+                  onClick={handleSubmitTest}
+                  disabled={submitting}
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                >
+                  {submitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Submitting...
+                    </div>
+                  ) : (
+                    "Yes, Submit Test"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </DashboardLayout>
     );
