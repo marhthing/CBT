@@ -1,238 +1,136 @@
 
-import React, { useEffect, useState, useRef } from 'react';
-import { toast } from '@/hooks/use-toast';
+import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription } from './ui/alert';
 
 interface SecureTestEnvironmentProps {
   children: React.ReactNode;
-  onSecurityViolation: (violation: string) => void;
-  isTestActive: boolean;
+  isActive: boolean;
+  onSecurityViolation?: () => void;
 }
 
-const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
-  children,
-  onSecurityViolation,
-  isTestActive
-}) => {
+export default function SecureTestEnvironment({ 
+  children, 
+  isActive, 
+  onSecurityViolation 
+}: SecureTestEnvironmentProps) {
   const [violations, setViolations] = useState<string[]>([]);
-  const [isSecureMode, setIsSecureMode] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Detect if device is mobile
-    const checkMobile = () => {
-      setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    if (!isActive) return;
+
+    let violationTimeout: NodeJS.Timeout;
+
+    // Monitor for suspicious activity without blocking keyboard
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        const violation = 'Tab switched or window minimized';
+        setViolations(prev => [...prev, violation]);
+        
+        // Delay the violation callback to avoid immediate disruption
+        violationTimeout = setTimeout(() => {
+          onSecurityViolation?.();
+        }, 2000);
+      } else {
+        // Clear timeout if user returns quickly
+        if (violationTimeout) {
+          clearTimeout(violationTimeout);
+        }
+      }
     };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
-  useEffect(() => {
-    if (isTestActive) {
-      setIsSecureMode(true);
-      enableSecurityMeasures();
-    } else {
-      setIsSecureMode(false);
-      disableSecurityMeasures();
+    // Monitor context menu (right-click) without completely blocking it
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      setViolations(prev => [...prev, 'Right-click attempted']);
+    };
+
+    // Monitor specific key combinations but allow normal typing
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only block developer tools and some problematic combinations
+      if (
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || // Dev tools
+        (e.ctrlKey && e.key === 'u') || // View source
+        e.key === 'F12' // Dev tools
+      ) {
+        e.preventDefault();
+        setViolations(prev => [...prev, `Blocked key combination: ${e.key}`]);
+      }
+      
+      // Allow copy/paste operations
+      if (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'a')) {
+        // Allow these operations - don't prevent them
+        return;
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Monitor for multiple tabs (less intrusive check)
+    let tabCheckInterval: NodeJS.Timeout;
+    if (typeof window !== 'undefined') {
+      tabCheckInterval = setInterval(() => {
+        // Simple check without blocking functionality
+        if (document.hasFocus() === false && !document.hidden) {
+          setViolations(prev => [...prev, 'Focus lost - possible tab switch']);
+        }
+      }, 5000); // Check every 5 seconds instead of constantly
     }
 
     return () => {
-      disableSecurityMeasures();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+      
+      if (violationTimeout) clearTimeout(violationTimeout);
+      if (tabCheckInterval) clearInterval(tabCheckInterval);
     };
-  }, [isTestActive]);
+  }, [isActive, onSecurityViolation]);
 
-  const logViolation = (violation: string) => {
-    setViolations(prev => [...prev, violation]);
-    onSecurityViolation(violation);
-  };
-
-  const enableSecurityMeasures = () => {
-    // Disable right-click context menu
-    document.addEventListener('contextmenu', handleContextMenu);
-    
-    // Disable common keyboard shortcuts
-    document.addEventListener('keydown', handleKeyDown);
-    
-    // Disable text selection on non-input elements
-    document.addEventListener('selectstart', handleSelectStart);
-    
-    // Detect window focus/blur (tab switching)
-    window.addEventListener('blur', handleWindowBlur);
-    window.addEventListener('focus', handleWindowFocus);
-    
-    // Mobile-specific security measures
-    if (isMobile) {
-      document.addEventListener('touchstart', handleTouchStart, { passive: false });
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    }
-    
-    // Disable developer tools (limited effectiveness)
-    setInterval(() => {
-      if (isSecureMode) {
-        const devtools = /./;
-        devtools.toString = function() {
-          logViolation('Developer tools detected');
-          return 'devtools';
-        };
-        console.log('%c', devtools);
-      }
-    }, 1000);
-  };
-
-  const disableSecurityMeasures = () => {
-    document.removeEventListener('contextmenu', handleContextMenu);
-    document.removeEventListener('keydown', handleKeyDown);
-    document.removeEventListener('selectstart', handleSelectStart);
-    window.removeEventListener('blur', handleWindowBlur);
-    window.removeEventListener('focus', handleWindowFocus);
-    
-    if (isMobile) {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-    }
-  };
-
-  const handleContextMenu = (e: MouseEvent) => {
-    if (!isSecureMode) return;
-    e.preventDefault();
-    logViolation('Right-click attempted');
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (!isSecureMode) return;
-
-    // Disable common shortcuts for copying, developer tools, etc.
-    const forbiddenKeys = [
-      'F12', // Developer tools
-      'F11', // Fullscreen toggle
-    ];
-
-    const forbiddenCombos = [
-      { key: 'c', ctrl: true }, // Ctrl+C (copy)
-      { key: 'v', ctrl: true }, // Ctrl+V (paste)
-      { key: 'a', ctrl: true }, // Ctrl+A (select all)
-      { key: 'x', ctrl: true }, // Ctrl+X (cut)
-      { key: 's', ctrl: true }, // Ctrl+S (save)
-      { key: 'p', ctrl: true }, // Ctrl+P (print)
-      { key: 'u', ctrl: true }, // Ctrl+U (view source)
-      { key: 'i', ctrl: true, shift: true }, // Ctrl+Shift+I (dev tools)
-      { key: 'j', ctrl: true, shift: true }, // Ctrl+Shift+J (console)
-      { key: 'c', ctrl: true, shift: true }, // Ctrl+Shift+C (inspect)
-      { key: 'r', ctrl: true }, // Ctrl+R (refresh)
-      { key: 'F5', ctrl: false }, // F5 (refresh)
-    ];
-
-    if (forbiddenKeys.includes(e.key)) {
-      e.preventDefault();
-      logViolation(`Attempted to use forbidden key: ${e.key}`);
-      return;
-    }
-
-    const matchesForbiddenCombo = forbiddenCombos.some(combo => {
-      return (
-        e.key.toLowerCase() === combo.key.toLowerCase() &&
-        e.ctrlKey === combo.ctrl &&
-        (!combo.shift || e.shiftKey === combo.shift)
-      );
-    });
-
-    if (matchesForbiddenCombo) {
-      e.preventDefault();
-      logViolation(`Attempted forbidden key combination: ${e.ctrlKey ? 'Ctrl+' : ''}${e.shiftKey ? 'Shift+' : ''}${e.key}`);
-    }
-  };
-
-  const handleSelectStart = (e: Event) => {
-    if (!isSecureMode) return;
-    
-    // Allow text selection in input fields and textareas
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-      return;
-    }
-    
-    e.preventDefault();
-  };
-
-  const handleWindowBlur = () => {
-    if (!isSecureMode) return;
-    logViolation('Window lost focus (possible tab switch)');
-  };
-
-  const handleWindowFocus = () => {
-    if (!isSecureMode || violations.length === 0) return;
-    toast({
-      title: "Security Warning",
-      description: "Keep focus on the test window",
-      variant: "destructive"
-    });
-  };
-
-  const handleTouchStart = (e: TouchEvent) => {
-    if (!isSecureMode || !isMobile) return;
-
-    // Allow all touch events on form inputs and their containers to prevent keyboard issues
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' || 
-        target.tagName === 'BUTTON' ||
-        target.closest('input, textarea, button, form, .question-container, .answer-option')) {
-      return;
-    }
-
-    // Only prevent multi-touch outside of form areas
-    if (e.touches.length > 1) {
-      e.preventDefault();
-      const violation = `Multi-touch detected at ${new Date().toLocaleTimeString()}`;
-      logViolation(violation);
-    }
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    // Allow all touch move on form elements and interactive areas
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' || 
-        target.tagName === 'BUTTON' ||
-        target.closest('input, textarea, button, form, .question-container, .answer-option')) {
-      return;
-    }
-
-    // Prevent excessive scrolling or swiping
-    if (e.touches.length > 1) {
-      e.preventDefault();
-    }
-  };
+  if (!isActive) {
+    return <>{children}</>;
+  }
 
   return (
-    <div 
-      ref={containerRef}
-      className={`relative ${isSecureMode ? 'select-none' : ''}`}
-      style={{
-        userSelect: isSecureMode ? 'none' : 'auto',
-        WebkitUserSelect: isSecureMode ? 'none' : 'auto',
-        MozUserSelect: isSecureMode ? 'none' : 'auto',
-        msUserSelect: isSecureMode ? 'none' : 'auto',
-      }}
-    >
-      {children}
-      
-      {isSecureMode && (
-        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-3 py-1 rounded-md text-sm">
-          🔒 Secure Mode Active
-        </div>
-      )}
-      
+    <div className="secure-test-environment">
       {violations.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50 bg-yellow-500 text-white px-3 py-1 rounded-md text-sm">
-          ⚠️ {violations.length} violation(s)
-        </div>
+        <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+          <AlertDescription>
+            Security monitoring active. Recent activity: {violations[violations.length - 1]}
+          </AlertDescription>
+        </Alert>
       )}
+      
+      <div className="test-content">
+        {children}
+      </div>
+      
+      <style jsx>{`
+        .secure-test-environment {
+          min-height: 100vh;
+          background: #f8f9fa;
+        }
+        
+        .test-content {
+          padding: 20px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        
+        /* Prevent text selection on non-input elements */
+        .secure-test-environment * {
+          user-select: text; /* Allow text selection for better UX */
+        }
+        
+        /* Allow selection in input areas */
+        .secure-test-environment input,
+        .secure-test-environment textarea,
+        .secure-test-environment [contenteditable] {
+          user-select: text !important;
+        }
+      `}</style>
     </div>
   );
-};
-
-export { SecureTestEnvironment };
-export default SecureTestEnvironment;
+}
