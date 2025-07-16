@@ -170,6 +170,12 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
 
     const handleContextMenu = (e: MouseEvent) => {
       if (isSecureMode) {
+        // Allow context menu on input fields for mobile keyboards
+        const target = e.target as HTMLElement;
+        if (isMobile && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+          return;
+        }
+
         e.preventDefault();
         const violation = `Attempted to open context menu at ${new Date().toLocaleTimeString()}`;
         setViolations(prev => [...prev, violation]);
@@ -181,7 +187,13 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     const handleTouchStart = (e: TouchEvent) => {
       if (!isSecureMode || !isMobile) return;
 
-      // Detect multi-touch (potential screenshot gesture)
+      // Don't interfere with form inputs
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('input, textarea')) {
+        return;
+      }
+
+      // Detect multi-touch (potential screenshot gesture) but allow normal typing
       if (e.touches.length > 1) {
         e.preventDefault();
         const violation = `Multi-touch detected at ${new Date().toLocaleTimeString()}`;
@@ -213,11 +225,17 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     };
   }, [isSecureMode, isTestActive, isMobile, onSecurityViolation]);
 
-  // Disable copy/paste
+  // Disable copy/paste (but allow normal typing)
   useEffect(() => {
     if (!isSecureMode) return;
 
     const handleCopy = (e: ClipboardEvent) => {
+      // Allow copy/paste in input fields on mobile for better user experience
+      const target = e.target as HTMLElement;
+      if (isMobile && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        return; // Allow copy/paste in form fields on mobile
+      }
+      
       e.preventDefault();
       const violation = `Attempted to copy content at ${new Date().toLocaleTimeString()}`;
       setViolations(prev => [...prev, violation]);
@@ -225,6 +243,12 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     };
 
     const handlePaste = (e: ClipboardEvent) => {
+      // Allow copy/paste in input fields on mobile for better user experience
+      const target = e.target as HTMLElement;
+      if (isMobile && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        return; // Allow copy/paste in form fields on mobile
+      }
+      
       e.preventDefault();
       const violation = `Attempted to paste content at ${new Date().toLocaleTimeString()}`;
       setViolations(prev => [...prev, violation]);
@@ -238,13 +262,19 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
       document.removeEventListener('copy', handleCopy);
       document.removeEventListener('paste', handlePaste);
     };
-  }, [isSecureMode, onSecurityViolation]);
+  }, [isSecureMode, isMobile, onSecurityViolation]);
 
-  // Prevent zooming on mobile
+  // Prevent zooming on mobile (but allow keyboard interactions)
   useEffect(() => {
     if (!isMobile || !isSecureMode) return;
 
     const handleWheel = (e: WheelEvent) => {
+      // Don't prevent wheel events on form elements
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('input, textarea')) {
+        return;
+      }
+
       if (e.ctrlKey) {
         e.preventDefault();
         const violation = `Attempted to zoom at ${new Date().toLocaleTimeString()}`;
@@ -254,6 +284,12 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      // Don't prevent touch move on form elements to allow selection and keyboard
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('input, textarea')) {
+        return;
+      }
+
       if (e.touches.length > 1) {
         e.preventDefault();
       }
