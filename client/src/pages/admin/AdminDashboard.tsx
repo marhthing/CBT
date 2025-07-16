@@ -22,6 +22,7 @@ interface DashboardStats {
   testsTaken: number;
   activeTestCodes: number;
   totalTestCodes: number;
+  totalQuestions: number;
 }
 
 const AdminDashboard = () => {
@@ -30,7 +31,8 @@ const AdminDashboard = () => {
     totalStudents: 0,
     testsTaken: 0,
     activeTestCodes: 0,
-    totalTestCodes: 0
+    totalTestCodes: 0,
+    totalQuestions: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +55,8 @@ const AdminDashboard = () => {
           totalStudents: adminStats.totalStudents,
           testsTaken: dashboardStats.testsTaken,
           activeTestCodes: dashboardStats.activeTestCodes,
-          totalTestCodes: dashboardStats.totalTestCodes
+          totalTestCodes: dashboardStats.totalTestCodes,
+          totalQuestions: dashboardStats.totalQuestions
         });
       }
     } catch (error) {
@@ -142,7 +145,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -184,6 +187,17 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalTestCodes}</div>
               <p className="text-xs text-muted-foreground">All time generated</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Questions</CardTitle>
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalQuestions}</div>
+              <p className="text-xs text-muted-foreground">All subjects & teachers</p>
             </CardContent>
           </Card>
         </div>
