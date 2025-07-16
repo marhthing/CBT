@@ -65,7 +65,7 @@ async function clearAndPopulate() {
         optionB: "children",
         optionC: "childrens",
         optionD: "child",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -80,7 +80,7 @@ async function clearAndPopulate() {
         optionB: "She goes to school daily",
         optionC: "She going to school daily",
         optionD: "She gone to school daily",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -118,7 +118,7 @@ async function clearAndPopulate() {
         optionB: "A dog",
         optionC: "A book",
         optionD: "A house",
-        correctAnswer: "C",
+        correctAnswer: "2",
         scorePerQuestion: 1,
       },
       {
@@ -133,7 +133,7 @@ async function clearAndPopulate() {
         optionB: "beautiful",
         optionC: "table",
         optionD: "quickly",
-        correctAnswer: "C",
+        correctAnswer: "2",
         scorePerQuestion: 1,
       },
       {
@@ -159,7 +159,7 @@ async function clearAndPopulate() {
         optionB: "cold",
         optionC: "cool",
         optionD: "freezing",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -197,7 +197,7 @@ async function clearAndPopulate() {
         optionB: "Television",
         optionC: "Radio",
         optionD: "Phone",
-        correctAnswer: "A",
+        correctAnswer: "0",
         scorePerQuestion: 1,
       },
       {
@@ -212,7 +212,7 @@ async function clearAndPopulate() {
         optionB: "receive",
         optionC: "receve",
         optionD: "receiv",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -250,7 +250,7 @@ async function clearAndPopulate() {
         optionB: "Cat",
         optionC: "Bird",
         optionD: "Fish",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -265,7 +265,7 @@ async function clearAndPopulate() {
         optionB: "goes",
         optionC: "going",
         optionD: "gone",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -314,7 +314,7 @@ async function clearAndPopulate() {
         optionB: "Library",
         optionC: "Hospital",
         optionD: "Market",
-        correctAnswer: "A",
+        correctAnswer: "0",
         scorePerQuestion: 1,
       },
       {
@@ -329,7 +329,7 @@ async function clearAndPopulate() {
         optionB: "big",
         optionC: "eat",
         optionD: "sleep",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -367,7 +367,7 @@ async function clearAndPopulate() {
         optionB: "Blue",
         optionC: "Green",
         optionD: "Yellow",
-        correctAnswer: "A",
+        correctAnswer: "0",
         scorePerQuestion: 1,
       },
       {
@@ -382,7 +382,7 @@ async function clearAndPopulate() {
         optionB: "An",
         optionC: "The",
         optionD: "This",
-        correctAnswer: "B",
+        correctAnswer: "1",
         scorePerQuestion: 1,
       },
       {
@@ -431,7 +431,7 @@ async function clearAndPopulate() {
         optionB: "School",
         optionC: "Office",
         optionD: "Shop",
-        correctAnswer: "A",
+        correctAnswer: "0",
         scorePerQuestion: 1,
       },
       {
@@ -446,7 +446,7 @@ async function clearAndPopulate() {
         optionB: "bookes",
         optionC: "booking",
         optionD: "bookies",
-        correctAnswer: "A",
+        correctAnswer: "0",
         scorePerQuestion: 1,
       }
     ];

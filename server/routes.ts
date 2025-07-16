@@ -1335,6 +1335,74 @@ app.get("/api/test-code-batches/:batchId/codes", async (req, res) => {
     }
   });
 
+app.post('/api/submit-test', requireAuth, async (req, res) => {
+    try {
+      const { testCode, answers } = req.body;
+      const profile = req.session.profile;
+
+      if (!profile || profile.role !== 'student') {
+        return res.status(403).json({ error: "Only students can submit tests" });
+      }
+
+      const testCodeRecord = await storage.getTestCodeByCode(testCode);
+      if (!testCodeRecord) {
+        return res.status(404).json({ error: "Test code not found" });
+      }
+
+      const questions = await storage.getQuestionsByBatch(testCodeRecord.batchId);
+      let totalScore = 0;
+      let totalPossibleScore = 0;
+
+      for (const question of questions) {
+        totalPossibleScore += question.scorePerQuestion;
+        const userAnswer = answers[question.id];
+
+        if (userAnswer !== undefined && userAnswer !== null) {
+          let isCorrect = false;
+
+          if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
+            // For multiple choice, userAnswer should be a number (0, 1, 2, 3)
+            // Convert both to strings for comparison
+            const userAnswerStr = userAnswer.toString();
+            const correctAnswerStr = question.correctAnswer?.toString();
+            isCorrect = userAnswerStr === correctAnswerStr;
+          } else if (question.questionType === 'true_false') {
+            // For true/false, compare string values
+            isCorrect = userAnswer.toString() === question.correctAnswer?.toString();
+          } else if (question.questionType === 'fill_blank') {
+            // For fill-in-the-blank, check against correctAnswerText
+            const userAnswerText = userAnswer.toString().toLowerCase().trim();
+            const correctAnswerText = question.correctAnswerText?.toLowerCase().trim();
+            isCorrect = userAnswerText === correctAnswerText;
+          }
+          // Note: Essay questions would need manual grading
+
+          if (isCorrect) {
+            totalScore += question.scorePerQuestion;
+          }
+        }
+      }
+
+      const testResult = await storage.createTestResult({
+        studentId: profile.userId,
+        testCodeId: testCodeRecord.id,
+        score: totalScore,
+        totalPossibleScore,
+        submittedAt: new Date()
+      });
+
+      res.json({ 
+        success: true, 
+        score: totalScore,
+        totalPossibleScore,
+        percentage: totalPossibleScore > 0 ? Math.round((totalScore / totalPossibleScore) * 100) : 0
+      });
+    } catch (error) {
+      console.error('Submit test error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const server = createServer(app);
   return server;
 }
