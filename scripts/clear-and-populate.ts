@@ -1,0 +1,470 @@
+
+import { db } from "../server/db";
+import { questions, testCodeBatches, testCodes, testResults, teacherAssignments, users, profiles } from "../shared/schema";
+import bcrypt from "bcryptjs";
+
+async function clearAndPopulate() {
+  console.log("Clearing database (preserving terms, sessions, classes, subjects)...");
+
+  try {
+    // Clear tables in order (respecting foreign key constraints)
+    await db.delete(testResults);
+    console.log("Cleared test results");
+
+    await db.delete(testCodes);
+    console.log("Cleared test codes");
+
+    await db.delete(testCodeBatches);
+    console.log("Cleared test code batches");
+
+    await db.delete(questions);
+    console.log("Cleared questions");
+
+    await db.delete(teacherAssignments);
+    console.log("Cleared teacher assignments");
+
+    await db.delete(profiles);
+    console.log("Cleared profiles");
+
+    await db.delete(users);
+    console.log("Cleared users");
+
+    console.log("Database cleared successfully!");
+
+    // Create admin user
+    console.log("Creating admin user...");
+    const hashedPassword = await bcrypt.hash("admin123", 10);
+    
+    const adminUser = await db.insert(users).values({
+      email: "admin@sfcs.edu.ng",
+      passwordHash: hashedPassword,
+    }).returning();
+
+    await db.insert(profiles).values({
+      userId: adminUser[0].id,
+      email: "admin@sfcs.edu.ng",
+      fullName: "School Administrator",
+      role: "admin",
+    });
+
+    console.log("Admin user created with email: admin@sfcs.edu.ng, password: admin123");
+
+    // Create JSS1 English Language questions
+    console.log("Populating with JSS1 English Language questions...");
+    
+    const jss1Questions = [
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What is the plural form of 'child'?",
+        questionType: "multiple_choice",
+        optionA: "childs",
+        optionB: "children",
+        optionC: "childrens",
+        optionD: "child",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Choose the correct sentence:",
+        questionType: "multiple_choice",
+        optionA: "She go to school daily",
+        optionB: "She goes to school daily",
+        optionC: "She going to school daily",
+        optionD: "She gone to school daily",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "The sun rises in the _____",
+        questionType: "fill_blank",
+        correctAnswerText: "east",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "English is spoken in Nigeria.",
+        questionType: "true_false",
+        correctAnswer: "true",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What do you see in this picture?",
+        questionType: "image_based",
+        imageUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=300&fit=crop",
+        optionA: "A cat",
+        optionB: "A dog",
+        optionC: "A book",
+        optionD: "A house",
+        correctAnswer: "C",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Which word is a noun?",
+        questionType: "multiple_choice",
+        optionA: "run",
+        optionB: "beautiful",
+        optionC: "table",
+        optionD: "quickly",
+        correctAnswer: "C",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Write a short sentence using the word 'happy'.",
+        questionType: "essay",
+        correctAnswerText: "Any sentence using 'happy' correctly",
+        scorePerQuestion: 2,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What is the opposite of 'hot'?",
+        questionType: "multiple_choice",
+        optionA: "warm",
+        optionB: "cold",
+        optionC: "cool",
+        optionD: "freezing",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "The cat is sleeping on the _____",
+        questionType: "fill_blank",
+        correctAnswerText: "mat",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Books are made of paper.",
+        questionType: "true_false",
+        correctAnswer: "true",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Identify the object in this image:",
+        questionType: "image_based",
+        imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300&fit=crop",
+        optionA: "Computer",
+        optionB: "Television",
+        optionC: "Radio",
+        optionD: "Phone",
+        correctAnswer: "A",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Which is the correct spelling?",
+        questionType: "multiple_choice",
+        optionA: "recieve",
+        optionB: "receive",
+        optionC: "receve",
+        optionD: "receiv",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "My name _____ John.",
+        questionType: "fill_blank",
+        correctAnswerText: "is",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Water boils at 100 degrees Celsius.",
+        questionType: "true_false",
+        correctAnswer: "true",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What animal is shown in the picture?",
+        questionType: "image_based",
+        imageUrl: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=300&fit=crop",
+        optionA: "Dog",
+        optionB: "Cat",
+        optionC: "Bird",
+        optionD: "Fish",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Choose the correct verb form: 'She _____ to school every day.'",
+        questionType: "multiple_choice",
+        optionA: "go",
+        optionB: "goes",
+        optionC: "going",
+        optionD: "gone",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Write a sentence about your favorite food.",
+        questionType: "essay",
+        correctAnswerText: "Any complete sentence about favorite food",
+        scorePerQuestion: 2,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "The past tense of 'go' is _____",
+        questionType: "fill_blank",
+        correctAnswerText: "went",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "There are 26 letters in the English alphabet.",
+        questionType: "true_false",
+        correctAnswer: "true",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What is the main subject of this picture?",
+        questionType: "image_based",
+        imageUrl: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=400&h=300&fit=crop",
+        optionA: "School",
+        optionB: "Library",
+        optionC: "Hospital",
+        optionD: "Market",
+        correctAnswer: "A",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Which word is an adjective?",
+        questionType: "multiple_choice",
+        optionA: "run",
+        optionB: "big",
+        optionC: "eat",
+        optionD: "sleep",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "I _____ a student.",
+        questionType: "fill_blank",
+        correctAnswerText: "am",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Fish live in water.",
+        questionType: "true_false",
+        correctAnswer: "true",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What color is the object in this image?",
+        questionType: "image_based",
+        imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop",
+        optionA: "Red",
+        optionB: "Blue",
+        optionC: "Green",
+        optionD: "Yellow",
+        correctAnswer: "A",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Choose the correct article: '_____ apple is red.'",
+        questionType: "multiple_choice",
+        optionA: "A",
+        optionB: "An",
+        optionC: "The",
+        optionD: "This",
+        correctAnswer: "B",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Describe your best friend in three sentences.",
+        questionType: "essay",
+        correctAnswerText: "Any three complete sentences describing a friend",
+        scorePerQuestion: 3,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "She _____ her homework yesterday.",
+        questionType: "fill_blank",
+        correctAnswerText: "did",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "Birds can fly.",
+        questionType: "true_false",
+        correctAnswer: "true",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What type of building is shown in this picture?",
+        questionType: "image_based",
+        imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop",
+        optionA: "House",
+        optionB: "School",
+        optionC: "Office",
+        optionD: "Shop",
+        correctAnswer: "A",
+        scorePerQuestion: 1,
+      },
+      {
+        teacherId: adminUser[0].id,
+        term: "First Term",
+        class: "JSS1",
+        section: "A",
+        subject: "English Language",
+        question: "What is the singular form of 'books'?",
+        questionType: "multiple_choice",
+        optionA: "book",
+        optionB: "bookes",
+        optionC: "booking",
+        optionD: "bookies",
+        correctAnswer: "A",
+        scorePerQuestion: 1,
+      }
+    ];
+
+    await db.insert(questions).values(jss1Questions);
+
+    console.log("Successfully added 30 JSS1 English Language questions!");
+    console.log("Questions added for:");
+    console.log("- Class: JSS1");
+    console.log("- Term: First Term");
+    console.log("- Session: 2024/2025");
+    console.log("- Subject: English Language");
+    console.log("- Section: A");
+    console.log("");
+
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+
+clearAndPopulate();
