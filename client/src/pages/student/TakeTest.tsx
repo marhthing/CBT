@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/DashboardLayout';
-// import SecureTestEnvironment from '@/components/SecureTestEnvironment'; // SecureTestEnvironment is removed
+import SecureTestEnvironment from '@/components/SecureTestEnvironment';
 import { Textarea } from '@/components/ui/textarea';
 
 interface Question {
@@ -22,8 +23,9 @@ interface Question {
   scorePerQuestion?: number;
   originalCorrectAnswer?: number;
   optionMapping?: number[];
-    questionType: string;
-    imageUrl?: string;
+  questionType: string;
+  imageUrl?: string;
+  correctAnswerText?: string;
 }
 
 // Utility function to shuffle an array
@@ -107,6 +109,7 @@ const TakeTest = () => {
   const [securityViolations, setSecurityViolations] = useState<string[]>([]);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const navigate = useNavigate();
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (step === "test" && timeLeft > 0) {
@@ -121,7 +124,7 @@ const TakeTest = () => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [step, timeLeft]);
+  }, [step, timeLeft, submitting]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -129,7 +132,7 @@ const TakeTest = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const renderQuestionContent = (question: any) => {
+  const renderQuestionContent = useCallback((question: Question) => {
     switch (question.questionType) {
       case 'multiple_choice':
         return (
@@ -177,6 +180,9 @@ const TakeTest = () => {
               value={answers[currentQuestion] || ""}
               onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
               className="w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
             />
           </div>
         );
@@ -192,6 +198,9 @@ const TakeTest = () => {
               onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
               className="w-full min-h-[200px]"
               rows={8}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
             />
           </div>
         );
@@ -228,7 +237,7 @@ const TakeTest = () => {
       default:
         return <div>Unsupported question type</div>;
     }
-  };
+  }, [answers, currentQuestion]);
 
   const handleStartTest = async () => {
     if (!testCode) {
@@ -242,7 +251,6 @@ const TakeTest = () => {
 
     setLoading(true);
     try {
-      // Check if test code exists and is active
       const response = await fetch(`/api/test-codes/validate/${testCode.toUpperCase()}`, {
         credentials: 'include'
       });
@@ -259,7 +267,6 @@ const TakeTest = () => {
 
       const testCodeData = await response.json();
 
-      // Set test metadata for preview
       setTestMetadata({
         subject: testCodeData.subject,
         class: testCodeData.class,
@@ -293,7 +300,6 @@ const TakeTest = () => {
 
     setLoading(true);
     try {
-      // Fetch questions for this test
       const questionsResponse = await fetch(`/api/questions/for-test?subject=${encodeURIComponent(testMetadata.subject)}&class=${encodeURIComponent(testMetadata.class)}&term=${encodeURIComponent(testMetadata.term)}&limit=${testMetadata.numQuestions}`, {
         credentials: 'include'
       });
@@ -318,7 +324,6 @@ const TakeTest = () => {
         return;
       }
 
-      // Format and shuffle questions for the test
       const formattedQuestions: Question[] = questions.map((q: any, index: number) => 
         shuffleQuestionOptions({
           ...q,
@@ -327,7 +332,6 @@ const TakeTest = () => {
         })
       );
 
-      // Shuffle the order of questions
       const shuffledQuestions = shuffleArray(formattedQuestions);
 
       const testTitle = `${testMetadata.subject} - ${testMetadata.term} Term (${testMetadata.class})`;
@@ -335,7 +339,7 @@ const TakeTest = () => {
       setTestData({
         title: testTitle,
         questions: shuffledQuestions,
-        duration: testMetadata.timeLimit * 60, // Convert minutes to seconds
+        duration: testMetadata.timeLimit * 60,
         testCodeId: testCode.toUpperCase()
       });
 
@@ -358,27 +362,24 @@ const TakeTest = () => {
     }
   };
 
-  const handleAnswerChange = (value: string) => {
+  const handleAnswerChange = useCallback((value: string) => {
     const question = testData?.questions[currentQuestion];
     if (!question) return;
 
     let answerValue: any = value;
 
-    // For multiple choice and image-based questions, convert to number
     if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
       answerValue = parseInt(value);
     }
-    // For true/false, fill_blank, and essay, keep as string
 
     setAnswers(prev => ({
       ...prev,
       [currentQuestion]: answerValue
     }));
-  };
+  }, [testData, currentQuestion]);
 
   const handleNextQuestion = () => {
     if (!testData) return;
-
     if (currentQuestion < testData.questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     }
@@ -394,14 +395,13 @@ const TakeTest = () => {
     setSecurityViolations(prev => [...prev, violation]);
     console.log('Security violation:', violation);
 
-    // Auto-submit test after 3 violations
     if (securityViolations.length >= 2 && !submitting) {
       toast({
         title: "Security Alert",
         description: "Multiple violations detected. Test will be auto-submitted.",
         variant: "destructive"
       });
-      handleSubmitTest(); // Force submit without modal
+      handleSubmitTest();
     } else {
       toast({
         title: "Security Warning",
@@ -424,25 +424,20 @@ const TakeTest = () => {
     let totalScore = 0;
     let totalPossibleScore = 0;
 
-    // Create a mapping of answers for submission
     const mappedAnswers: { [key: number]: number } = {};
 
     testData.questions.forEach((question, index) => {
       const questionScore = question.scorePerQuestion || 1;
       totalPossibleScore += questionScore;
 
-      // Check if student's answer is correct
       const studentAnswer = answers[index];
       let isCorrect = false;
 
       if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
-        // For multiple choice, compare as numbers
         isCorrect = studentAnswer === question.correctAnswer;
       } else if (question.questionType === 'true_false') {
-        // For true/false, compare as strings
         isCorrect = studentAnswer?.toString() === question.correctAnswer?.toString();
       } else if (question.questionType === 'fill_blank' || question.questionType === 'essay') {
-        // For text answers, do case-insensitive comparison
         const studentText = studentAnswer?.toString().trim().toLowerCase();
         const correctText = question.correctAnswerText?.trim().toLowerCase();
         isCorrect = studentText === correctText;
@@ -453,19 +448,16 @@ const TakeTest = () => {
         totalScore += questionScore;
       }
 
-      // Map the student's shuffled answer back to original option index for storage
       if (studentAnswer !== undefined) {
         if ((question.questionType === 'multiple_choice' || question.questionType === 'image_based') && question.optionMapping) {
           mappedAnswers[index] = question.optionMapping[studentAnswer];
         } else {
-          // For other question types, store the answer directly
           mappedAnswers[index] = studentAnswer;
         }
       }
     });
 
     try {
-      // First get the test code details to get the actual UUID
       const testCodeResponse = await fetch(`/api/test-codes/${testCode.toUpperCase()}`, {
         credentials: 'include'
       });
@@ -476,7 +468,6 @@ const TakeTest = () => {
 
       const testCodeData = await testCodeResponse.json();
 
-      // Save test result to database
       const timeTaken = testData.duration - timeLeft;
       const response = await fetch('/api/test-results', {
         method: 'POST',
@@ -485,7 +476,7 @@ const TakeTest = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          testCodeId: testCodeData.id, // Use the actual UUID from the database
+          testCodeId: testCodeData.id,
           score: totalScore,
           totalQuestions: testData.questions.length,
           totalPossibleScore: totalPossibleScore,
@@ -500,7 +491,6 @@ const TakeTest = () => {
         throw new Error(errorData.error || 'Failed to submit test');
       }
 
-      // Deactivate the test code
       await fetch(`/api/test-codes/${testCode.toUpperCase()}/deactivate`, {
         method: 'PUT',
         credentials: 'include'
@@ -525,134 +515,133 @@ const TakeTest = () => {
   };
 
   if (step === "code") {
-      const TestContent = () => (
-        <DashboardLayout>
-          <div className="max-w-md mx-auto">
-            <h1 className="text-2xl font-bold mb-6">Take Test</h1>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-center">Enter Test Code</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form onSubmit={(e) => { e.preventDefault(); handleStartTest(); }}>
-                  <div>
-                    <Label htmlFor="testCode">Test Code</Label>
-                    <Input
-                      id="testCode"
-                      type="text"
-                      placeholder="Enter test code (e.g., MATH001)"
-                      value={testCode}
-                      onChange={(e) => setTestCode(e.target.value.toUpperCase())}
-                      className="mt-1"
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      autoCorrect="off"
-                      spellCheck="false"
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Starting..." : "Start Test"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        </DashboardLayout>
-      );
-      return (
-          <TestContent />
-      );
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto">
+          <h1 className="text-2xl font-bold mb-6">Take Test</h1>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center">Enter Test Code</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleStartTest(); }}>
+                <div>
+                  <Label htmlFor="testCode">Test Code</Label>
+                  <Input
+                    id="testCode"
+                    type="text"
+                    placeholder="Enter test code (e.g., MATH001)"
+                    value={testCode}
+                    onChange={(e) => setTestCode(e.target.value.toUpperCase())}
+                    className="mt-1"
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck="false"
+                  />
+                </div>
+                <Button type="submit" className="w-full mt-4" disabled={loading}>
+                  {loading ? "Starting..." : "Start Test"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   if (step === "preview") {
-    const TestContent = () => (
-        <DashboardLayout>
-          <div className="max-w-md mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-center">Test Preview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Subject:</span>
-                    <span>{testMetadata?.subject}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Class:</span>
-                    <span>{testMetadata?.class}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Session:</span>
-                    <span>{testMetadata?.session}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Term:</span>
-                    <span>{testMetadata?.term}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Questions:</span>
-                    <span>{testMetadata?.numQuestions}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Time Limit:</span>
-                    <span>{testMetadata?.timeLimit} minutes</span>
-                  </div>
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center">Test Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="font-medium">Subject:</span>
+                  <span>{testMetadata?.subject}</span>
                 </div>
-                <div className="space-y-2">
-                  <Button onClick={handleBeginTest} className="w-full" disabled={loading}>
-                    {loading ? "Starting..." : "Start Test"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setStep("code")} className="w-full">
-                    Back
-                  </Button>
+                <div className="flex justify-between">
+                  <span className="font-medium">Class:</span>
+                  <span>{testMetadata?.class}</span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </DashboardLayout>
+                <div className="flex justify-between">
+                  <span className="font-medium">Session:</span>
+                  <span>{testMetadata?.session}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Term:</span>
+                  <span>{testMetadata?.term}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Questions:</span>
+                  <span>{testMetadata?.numQuestions}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Time Limit:</span>
+                  <span>{testMetadata?.timeLimit} minutes</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Button onClick={handleBeginTest} className="w-full" disabled={loading}>
+                  {loading ? "Starting..." : "Start Test"}
+                </Button>
+                <Button variant="outline" onClick={() => setStep("code")} className="w-full">
+                  Back
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
-    return <TestContent />;
   }
 
   if (step === "result") {
-    const TestContent = () => (
-        <DashboardLayout>
-          <div className="max-w-md mx-auto">
-            <Card>
-              <CardHeader className="text-center">
-                <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-                <CardTitle>Test Completed!</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center space-y-4">
-                <div className="text-4xl font-bold text-green-600">
-                  {score}/{testData?.questions.reduce((total, q) => total + (q.scorePerQuestion || 1), 0)} points
-                </div>
-                <p className="text-lg">
-                  {testData?.questions.filter((_, index) => answers[index] === testData.questions[index].correctAnswer).length} out of {testData?.questions.length} questions correct
-                </p>
-                <p className="text-gray-600">
-                  Test: {testData?.title}
-                </p>
-                <Button
-                  onClick={() => navigate("/student/dashboard")}
-                  className="w-full"
-                >
-                  Back to Dashboard
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </DashboardLayout>
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto">
+          <Card>
+            <CardHeader className="text-center">
+              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+              <CardTitle>Test Completed!</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <div className="text-4xl font-bold text-green-600">
+                {score}/{testData?.questions.reduce((total, q) => total + (q.scorePerQuestion || 1), 0)} points
+              </div>
+              <p className="text-lg">
+                {testData?.questions.filter((_, index) => answers[index] === testData.questions[index].correctAnswer).length} out of {testData?.questions.length} questions correct
+              </p>
+              <p className="text-gray-600">
+                Test: {testData?.title}
+              </p>
+              <Button
+                onClick={() => navigate("/student/dashboard")}
+                className="w-full"
+              >
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
-    return <TestContent />;
   }
 
   if (!testData) return null;
 
   const question = testData.questions[currentQuestion];
 
-  const TestContent = () => (
+  return (
+    <SecureTestEnvironment 
+      onSecurityViolation={handleSecurityViolation} 
+      isActive={step === "test"}
+    >
       <DashboardLayout>
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2">
@@ -673,10 +662,7 @@ const TakeTest = () => {
               <CardTitle className="text-lg sm:text-xl leading-relaxed">{question.question}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="mb-6">
-                  <h2 className="text-lg font-medium mb-4">{question.question}</h2>
-                  {renderQuestionContent(question)}
-                </div>
+              {renderQuestionContent(question)}
             </CardContent>
           </Card>
 
@@ -745,16 +731,13 @@ const TakeTest = () => {
                     "Yes, Submit Test"
                   )}
                 </Button>
-              </DialogFooter>
+                </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
       </DashboardLayout>
-    );
-
-    return (
-        <TestContent />
-    );
+    </SecureTestEnvironment>
+  );
 };
 
 export default TakeTest;
