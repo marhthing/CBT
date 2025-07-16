@@ -12,7 +12,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "tsx": "tsx"
+    "tsx": "tsx",
+    "clear-populate": "tsx scripts/clear-and-populate.ts",
+    "check-db": "tsx scripts/check-db.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
