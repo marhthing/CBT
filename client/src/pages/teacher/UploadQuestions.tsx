@@ -264,11 +264,11 @@ const TeacherUploadQuestions = () => {
         subject: formData.subject,
         question: q.question,
         questionType: q.questionType,
-        optionA: q.questionType === 'multiple_choice' ? q.options[0] : null,
-        optionB: q.questionType === 'multiple_choice' ? q.options[1] : null,
-        optionC: q.questionType === 'multiple_choice' ? q.options[2] : null,
-        optionD: q.questionType === 'multiple_choice' ? q.options[3] : null,
-        correctAnswer: q.questionType === 'multiple_choice' ? q.correctAnswer.toString() : q.correctAnswer,
+        optionA: q.questionType === 'multiple_choice' || q.questionType === 'image_based' ? q.options[0] : null,
+        optionB: q.questionType === 'multiple_choice' || q.questionType === 'image_based' ? q.options[1] : null,
+        optionC: q.questionType === 'multiple_choice' || q.questionType === 'image_based' ? q.options[2] : null,
+        optionD: q.questionType === 'multiple_choice' || q.questionType === 'image_based' ? q.options[3] : null,
+        correctAnswer: q.questionType === 'multiple_choice' || q.questionType === 'image_based' ? q.correctAnswer.toString() : q.correctAnswer,
         correctAnswerText: q.correctAnswerText || null,
         imageUrl: q.imageUrl || null
       }));

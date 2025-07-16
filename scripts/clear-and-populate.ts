@@ -1,6 +1,6 @@
 
 import { db } from "../server/db";
-import { questions, testCodeBatches, testCodes, testResults, teacherAssignments } from "../shared/schema";
+import { questions, testCodeBatches, testCodes, testResults, teacherAssignments, users, profiles } from "../shared/schema";
 
 async function clearAndPopulateDatabase() {
   console.log("Clearing database (preserving terms, sessions, classes, subjects)...");
@@ -21,8 +21,30 @@ async function clearAndPopulateDatabase() {
     
     await db.delete(teacherAssignments);
     console.log("Cleared teacher assignments");
+    
+    await db.delete(profiles);
+    console.log("Cleared profiles");
+    
+    await db.delete(users);
+    console.log("Cleared users");
 
     console.log("Database cleared successfully!");
+
+    // Create an admin user first
+    console.log("Creating admin user...");
+    const [adminUser] = await db.insert(users).values({
+      email: "admin@sfcs.edu.ng",
+      passwordHash: "$2b$10$CwTycUXWue0Thq9StjUM0uehufrkK9Te4GkK5rMHLCdJ7GvC/dB.a" // password: admin123
+    }).returning();
+
+    await db.insert(profiles).values({
+      userId: adminUser.id,
+      email: "admin@sfcs.edu.ng",
+      fullName: "System Administrator",
+      role: "admin"
+    });
+
+    console.log("Admin user created with email: admin@sfcs.edu.ng, password: admin123");
 
     // Populate with JSS1 English Language questions
     console.log("Populating with JSS1 English Language questions...");
@@ -300,9 +322,8 @@ async function clearAndPopulateDatabase() {
       }
     ];
 
-    // Note: We need a teacher ID to insert questions. 
-    // For this demo, we'll use a placeholder teacher ID
-    const teacherId = "teacher-placeholder-id";
+    // Use the admin user ID for questions
+    const teacherId = adminUser.id;
 
     for (const questionData of jss1EnglishQuestions) {
       await db.insert(questions).values({
