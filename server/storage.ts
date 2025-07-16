@@ -728,26 +728,7 @@ export class DatabaseStorage implements IStorage {
 
   async getQuestionsForTest(subject: string, className: string, term: string, limit: number) {
     const allQuestions = await db
-      .select({
-        id: questions.id,
-        teacherId: questions.teacherId,
-        term: questions.term,
-        class: questions.class,
-        section: questions.section,
-        subject: questions.subject,
-        question: questions.question,
-        questionType: questions.questionType,
-        optionA: questions.optionA,
-        optionB: questions.optionB,
-        optionC: questions.optionC,
-        optionD: questions.optionD,
-        correctAnswer: questions.correctAnswer,
-        correctAnswerText: questions.correctAnswerText,
-        imageUrl: questions.imageUrl,
-        scorePerQuestion: questions.scorePerQuestion,
-        createdAt: questions.createdAt,
-        updatedAt: questions.updatedAt
-      })
+      .select()
       .from(questions)
       .where(
         and(
