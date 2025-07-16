@@ -343,12 +343,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required parameters" });
       }
 
+      console.log('Fetching questions for:', { subject, className, term, limit });
+
       const questions = await storage.getQuestionsForTest(
         subject as string,
         className as string,
         term as string,
         parseInt(limit as string)
       );
+
+      console.log(`Found ${questions.length} questions for test`);
+
+      if (questions.length === 0) {
+        console.log('No questions found for the specified criteria');
+        return res.status(404).json({ 
+          error: `No questions found for ${subject}, ${className}, ${term}` 
+        });
+      }
 
       res.json(questions);
     } catch (error) {
@@ -1138,10 +1149,16 @@ app.get("/api/test-code-batches/:batchId/codes", async (req, res) => {
         .select({ count: sql<number>`count(*)` })
         .from(testCodes);
 
+      // Get total questions count
+      const totalQuestionsResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(questions);
+
       res.json({
         testsTaken: Number(testsTakenResult[0]?.count || 0),
         activeTestCodes: Number(activeCodesResult[0]?.count || 0),
-        totalTestCodes: Number(totalCodesResult[0]?.count || 0)
+        totalTestCodes: Number(totalCodesResult[0]?.count || 0),
+        totalQuestions: Number(totalQuestionsResult[0]?.count || 0)
       });
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);

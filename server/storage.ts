@@ -727,14 +727,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionsForTest(subject: string, className: string, term: string, limit: number) {
-    return db.select().from(questions)
-      .where(and(
-        eq(questions.subject, subject),
-        eq(questions.class, className),
-        eq(questions.term, term)
-      ))
-      .orderBy(sql`RANDOM()`)
-      .limit(limit);
+    const allQuestions = await db
+      .select()
+      .from(questions)
+      .where(
+        and(
+          eq(questions.subject, subject),
+          eq(questions.class, className),
+          eq(questions.term, term)
+        )
+      );
+
+    // Shuffle questions and return limited number
+    const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(limit, shuffled.length));
   }
 
   async deactivateTestCode(code: string): Promise<void> {
