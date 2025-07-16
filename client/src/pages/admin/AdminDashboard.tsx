@@ -101,9 +101,18 @@ const AdminDashboard = () => {
         const tests = await response.json();
         // Filter out tests without proper user or testCode data
         const validTests = tests.filter((test: RecentTestResult) => 
-          test.users && test.testCodes && test.users.fullName && test.testCodes.code
+          test && 
+          test.users && 
+          test.testCodes && 
+          test.users.fullName && 
+          test.users.email &&
+          test.testCodes.code &&
+          test.testCodes.subject &&
+          test.testCodes.class &&
+          test.testCodes.term
         );
         setRecentTests(validTests);
+        console.log('Filtered tests:', validTests.length, 'from', tests.length);
       }
     } catch (error) {
       console.error('Error fetching recent tests:', error);
@@ -306,7 +315,7 @@ const AdminDashboard = () => {
               <Button 
                 variant="outline" 
                 className="h-20 flex flex-col items-center justify-center space-y-2"
-                onClick={() => window.location.href = '/admin/manage-questions'}
+                onClick={() => window.location.href = '/admin/manage-all-questions'}
               >
                 <Users className="h-6 w-6" />
                 <span className="text-sm">Manage Questions</span>
@@ -314,7 +323,7 @@ const AdminDashboard = () => {
               <Button 
                 variant="outline" 
                 className="h-20 flex flex-col items-center justify-center space-y-2"
-                onClick={() => window.location.href = '/admin/manage-test-code-batches'}
+                onClick={() => window.location.href = '/admin/manage-test-batches'}
               >
                 <TrendingUp className="h-6 w-6" />
                 <span className="text-sm">Manage Test Batches</span>
