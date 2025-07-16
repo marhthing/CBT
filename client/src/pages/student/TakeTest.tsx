@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/DashboardLayout';
-import SecureTestEnvironment from '@/components/SecureTestEnvironment';
+// import SecureTestEnvironment from '@/components/SecureTestEnvironment'; // SecureTestEnvironment is removed
 import { Textarea } from '@/components/ui/textarea';
 
 interface Question {
@@ -106,6 +106,7 @@ const TakeTest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [securityViolations, setSecurityViolations] = useState<string[]>([]);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const navigate = useNavigate();
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (step === "test" && timeLeft > 0) {
@@ -121,7 +122,6 @@ const TakeTest = () => {
     }
     return () => clearInterval(interval);
   }, [step, timeLeft]);
-  const navigate = useNavigate();
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -363,13 +363,13 @@ const TakeTest = () => {
     if (!question) return;
 
     let answerValue: any = value;
-    
+
     // For multiple choice and image-based questions, convert to number
     if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
       answerValue = parseInt(value);
     }
     // For true/false, fill_blank, and essay, keep as string
-    
+
     setAnswers(prev => ({
       ...prev,
       [currentQuestion]: answerValue
@@ -434,7 +434,7 @@ const TakeTest = () => {
       // Check if student's answer is correct
       const studentAnswer = answers[index];
       let isCorrect = false;
-      
+
       if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
         // For multiple choice, compare as numbers
         isCorrect = studentAnswer === question.correctAnswer;
@@ -560,95 +560,92 @@ const TakeTest = () => {
         </DashboardLayout>
       );
       return (
-          <SecureTestEnvironment
-              onSecurityViolation={handleSecurityViolation}
-              isTestActive={false}
-          >
-              <TestContent />
-          </SecureTestEnvironment>
+          <TestContent />
       );
   }
 
   if (step === "preview") {
-    return (
-      <DashboardLayout>
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">Test Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="font-medium">Subject:</span>
-                  <span>{testMetadata?.subject}</span>
+    const TestContent = () => (
+        <DashboardLayout>
+          <div className="max-w-md mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-center">Test Preview</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Subject:</span>
+                    <span>{testMetadata?.subject}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Class:</span>
+                    <span>{testMetadata?.class}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Session:</span>
+                    <span>{testMetadata?.session}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Term:</span>
+                    <span>{testMetadata?.term}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Questions:</span>
+                    <span>{testMetadata?.numQuestions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Time Limit:</span>
+                    <span>{testMetadata?.timeLimit} minutes</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Class:</span>
-                  <span>{testMetadata?.class}</span>
+                <div className="space-y-2">
+                  <Button onClick={handleBeginTest} className="w-full" disabled={loading}>
+                    {loading ? "Starting..." : "Start Test"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setStep("code")} className="w-full">
+                    Back
+                  </Button>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Session:</span>
-                  <span>{testMetadata?.session}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Term:</span>
-                  <span>{testMetadata?.term}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Questions:</span>
-                  <span>{testMetadata?.numQuestions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Time Limit:</span>
-                  <span>{testMetadata?.timeLimit} minutes</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Button onClick={handleBeginTest} className="w-full" disabled={loading}>
-                  {loading ? "Starting..." : "Start Test"}
-                </Button>
-                <Button variant="outline" onClick={() => setStep("code")} className="w-full">
-                  Back
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
+              </CardContent>
+            </Card>
+          </div>
+        </DashboardLayout>
     );
+    return <TestContent />;
   }
 
   if (step === "result") {
-    return (
-      <DashboardLayout>
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardHeader className="text-center">
-              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-              <CardTitle>Test Completed!</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <div className="text-4xl font-bold text-green-600">
-                {score}/{testData?.questions.reduce((total, q) => total + (q.scorePerQuestion || 1), 0)} points
-              </div>
-              <p className="text-lg">
-                {testData?.questions.filter((_, index) => answers[index] === testData.questions[index].correctAnswer).length} out of {testData?.questions.length} questions correct
-              </p>
-              <p className="text-gray-600">
-                Test: {testData?.title}
-              </p>
-              <Button
-                onClick={() => navigate("/student/dashboard")}
-                className="w-full"
-              >
-                Back to Dashboard
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
+    const TestContent = () => (
+        <DashboardLayout>
+          <div className="max-w-md mx-auto">
+            <Card>
+              <CardHeader className="text-center">
+                <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                <CardTitle>Test Completed!</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <div className="text-4xl font-bold text-green-600">
+                  {score}/{testData?.questions.reduce((total, q) => total + (q.scorePerQuestion || 1), 0)} points
+                </div>
+                <p className="text-lg">
+                  {testData?.questions.filter((_, index) => answers[index] === testData.questions[index].correctAnswer).length} out of {testData?.questions.length} questions correct
+                </p>
+                <p className="text-gray-600">
+                  Test: {testData?.title}
+                </p>
+                <Button
+                  onClick={() => navigate("/student/dashboard")}
+                  className="w-full"
+                >
+                  Back to Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </DashboardLayout>
     );
+    return <TestContent />;
   }
 
   if (!testData) return null;
@@ -756,12 +753,7 @@ const TakeTest = () => {
     );
 
     return (
-      <SecureTestEnvironment
-        onSecurityViolation={handleSecurityViolation}
-        isTestActive={step === 'test'}
-      >
         <TestContent />
-      </SecureTestEnvironment>
     );
 };
 
