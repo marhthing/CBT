@@ -13,6 +13,31 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
   isActive
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [violationCount, setViolationCount] = useState(0);
+  const [lastViolationTime, setLastViolationTime] = useState(0);
+  const [gracePeriodActive, setGracePeriodActive] = useState(false);
+
+  // Smart violation handler with grace periods
+  const handleViolation = (violation: string, severity: 'low' | 'medium' | 'high' = 'medium') => {
+    const now = Date.now();
+    const timeSinceLastViolation = now - lastViolationTime;
+    
+    // Give grace period for accidental mobile actions
+    if (severity === 'low' && timeSinceLastViolation < 2000) {
+      return; // Ignore rapid low-severity violations
+    }
+    
+    setLastViolationTime(now);
+    setViolationCount(prev => prev + 1);
+    
+    // Only report violation if it's high severity or after multiple attempts
+    if (severity === 'high' || violationCount >= 2) {
+      onSecurityViolation(violation);
+    } else if (severity === 'medium') {
+      // Show warning for medium severity
+      console.warn(`Security warning: ${violation} - ${2 - violationCount} more attempts before violation`);
+    }
+  };
 
   useEffect(() => {
     if (!isActive) return;
@@ -20,7 +45,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     // Disable copy/paste/cut operations
     const preventCopyPaste = (e: ClipboardEvent) => {
       e.preventDefault();
-      onSecurityViolation('Copy/paste operation blocked');
+      handleViolation('Copy/paste operation blocked', 'high');
     };
 
     // Disable text selection
@@ -32,7 +57,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     // Disable drag and drop
     const preventDragDrop = (e: DragEvent) => {
       e.preventDefault();
-      onSecurityViolation('Drag/drop operation blocked');
+      handleViolation('Drag/drop operation blocked', 'medium');
     };
 
     // Disable print screen and screenshot shortcuts
@@ -60,51 +85,74 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
       ) {
         e.preventDefault();
         e.stopPropagation();
-        onSecurityViolation(`Blocked key combination: ${e.key}`);
+        
+        // High severity for developer tools, medium for others
+        const severity = ['F12', 'I', 'J', 'U'].some(key => 
+          e.key === 'F12' || 
+          (e.ctrlKey && e.shiftKey && e.key === key) || 
+          (e.ctrlKey && e.key === key)
+        ) ? 'high' : 'medium';
+        
+        handleViolation(`Blocked key combination: ${e.key}`, severity);
         return false;
       }
     };
 
-    // Mobile-specific touch and gesture prevention
+    // Mobile-specific touch and gesture prevention with grace
     const preventTouchActions = (e: TouchEvent) => {
-      // Prevent long press (which can trigger context menu on mobile)
-      if (e.touches.length > 1) {
+      // Allow single touch, prevent multi-touch screenshots
+      if (e.touches.length > 2) { // More lenient - allow pinch zoom
         e.preventDefault();
-        onSecurityViolation('Multi-touch gesture blocked');
+        handleViolation('Multi-touch gesture blocked', 'low');
       }
     };
 
     // Prevent right-click context menu
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
-      onSecurityViolation('Right-click context menu blocked');
+      handleViolation('Right-click context menu blocked', 'medium');
     };
 
     // Prevent mouse selection
     const preventMouseSelection = (e: MouseEvent) => {
-      if (e.detail > 1) { // Double-click or triple-click
+      if (e.detail > 2) { // Only block triple-click, allow double-click
         e.preventDefault();
-        onSecurityViolation('Text selection attempt blocked');
+        handleViolation('Text selection attempt blocked', 'low');
       }
     };
 
-    // Tab visibility change detection
+    // Tab visibility change detection with mobile grace
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        onSecurityViolation('Tab/window switched - test visibility lost');
+        // Give grace period for mobile app switching
+        setGracePeriodActive(true);
+        setTimeout(() => {
+          if (document.hidden) {
+            handleViolation('Tab/window switched - test visibility lost', 'low');
+          }
+          setGracePeriodActive(false);
+        }, 3000); // 3 second grace period
       }
     };
 
-    // Window focus loss detection
+    // Window focus loss detection with mobile consideration
     const handleBlur = () => {
-      onSecurityViolation('Window focus lost - possible app switching');
+      // More lenient on mobile devices
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (!isMobile) {
+        handleViolation('Window focus lost - possible app switching', 'low');
+      } else {
+        // Very lenient on mobile - just log
+        console.warn('Mobile app focus lost - this is normal on mobile devices');
+      }
     };
 
     // Prevent page refresh
     const preventRefresh = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
-      onSecurityViolation('Page refresh attempt blocked');
+      handleViolation('Page refresh attempt blocked', 'high');
     };
 
     // Mobile screenshot prevention (iOS Safari)
@@ -125,7 +173,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     const preventImageSave = (e: Event) => {
       if (e.target instanceof HTMLImageElement) {
         e.preventDefault();
-        onSecurityViolation('Image save attempt blocked');
+        handleViolation('Image save attempt blocked', 'medium');
       }
     };
 
@@ -168,21 +216,23 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
       img.style.pointerEvents = 'none';
     });
 
-    // Hide content when dev tools might be open
+    // Hide content when dev tools might be open (less aggressive on mobile)
     let devtools = {
       open: false,
       orientation: null as string | null
     };
 
-    const threshold = 160;
-    setInterval(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const threshold = isMobile ? 300 : 160; // More lenient threshold for mobile
+    
+    const devToolsInterval = setInterval(() => {
       if (
         window.outerHeight - window.innerHeight > threshold ||
         window.outerWidth - window.innerWidth > threshold
       ) {
-        if (!devtools.open) {
+        if (!devtools.open && !isMobile) { // Skip this check on mobile
           devtools.open = true;
-          onSecurityViolation('Developer tools detected - hiding content');
+          handleViolation('Developer tools detected - hiding content', 'high');
           document.body.style.display = 'none';
         }
       } else {
@@ -191,10 +241,11 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
           document.body.style.display = 'block';
         }
       }
-    }, 500);
+    }, 1000); // Less frequent checking
 
     // Cleanup function
     return () => {
+      clearInterval(devToolsInterval);
       document.removeEventListener('copy', preventCopyPaste);
       document.removeEventListener('paste', preventCopyPaste);
       document.removeEventListener('cut', preventCopyPaste);
