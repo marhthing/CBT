@@ -312,98 +312,7 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Test Analysis Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart3 className="h-5 w-5 mr-2" />
-                Test Performance Analysis
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingTests ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{testAnalysis.passRate}%</div>
-                      <div className="text-sm text-gray-600">Pass Rate</div>
-                    </div>
-                    <div className="text-center p-3 bg-red-50 rounded-lg">
-                      <div className="text-2xl font-bold text-red-600">{testAnalysis.failRate}%</div>
-                      <div className="text-sm text-gray-600">Fail Rate</div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total Tests Taken</span>
-                      <Badge variant="outline">{testAnalysis.totalTests}</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Average Score</span>
-                      <Badge variant="outline">{testAnalysis.averageScore}%</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Highest Score</span>
-                      <Badge variant="default" className="bg-green-600">{testAnalysis.highestScore}%</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Lowest Score</span>
-                      <Badge variant="destructive">{testAnalysis.lowestScore}%</Badge>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BookOpen className="h-5 w-5 mr-2" />
-                Subject & Class Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingTests ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">By Subject</h4>
-                    <div className="space-y-2">
-                      {Object.entries(testAnalysis.subjectBreakdown).map(([subject, count]) => (
-                        <div key={subject} className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">{subject}</span>
-                          <Badge variant="outline">{count} tests</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">By Class</h4>
-                    <div className="space-y-2">
-                      {Object.entries(testAnalysis.classBreakdown).map(([className, count]) => (
-                        <div key={className} className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">{className}</span>
-                          <Badge variant="outline">{count} tests</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        
 
         {/* Test Analytics by Group */}
         <Card>
@@ -426,13 +335,13 @@ const AdminDashboard = () => {
               <div className="space-y-4">
                 {testAnalyticsByGroup.slice(0, 10).map((analytics) => (
                   <div key={analytics.testKey} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
+                    <div className="flex flex-col gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
                           <h3 className="font-semibold text-lg text-gray-900">
                             {analytics.subject}
                           </h3>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs w-fit">
                             {analytics.class}
                           </Badge>
                         </div>
@@ -444,9 +353,9 @@ const AdminDashboard = () => {
                         </p>
                       </div>
                       
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                         <div className="bg-blue-50 p-3 rounded-lg">
-                          <div className="text-2xl font-bold text-blue-600">
+                          <div className="text-xl md:text-2xl font-bold text-blue-600">
                             {analytics.totalParticipation}
                           </div>
                           <div className="text-xs text-gray-600">Total Participation</div>
@@ -505,54 +414,54 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
               <Button 
                 variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2"
                 onClick={() => window.location.href = '/admin/generate-test-code'}
               >
-                <FileText className="h-6 w-6" />
-                <span className="text-sm">Generate Test Codes</span>
+                <FileText className="h-4 w-4 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm text-center">Generate Test Codes</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2"
                 onClick={() => window.location.href = '/admin/upload-questions'}
               >
-                <BookOpen className="h-6 w-6" />
-                <span className="text-sm">Upload Questions</span>
+                <BookOpen className="h-4 w-4 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm text-center">Upload Questions</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2"
                 onClick={() => window.location.href = '/admin/export-results'}
               >
-                <BarChart3 className="h-6 w-6" />
-                <span className="text-sm">Export Results</span>
+                <BarChart3 className="h-4 w-4 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm text-center">Export Results</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2"
                 onClick={() => window.location.href = '/admin/manage-all-questions'}
               >
-                <Users className="h-6 w-6" />
-                <span className="text-sm">Manage Questions</span>
+                <Users className="h-4 w-4 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm text-center">Manage Questions</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2"
                 onClick={() => window.location.href = '/admin/manage-test-batches'}
               >
-                <TrendingUp className="h-6 w-6" />
-                <span className="text-sm">Manage Test Batches</span>
+                <TrendingUp className="h-4 w-4 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm text-center">Manage Test Batches</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2"
                 onClick={() => window.location.href = '/admin/manage-teacher-assignments'}
               >
-                <GraduationCap className="h-6 w-6" />
-                <span className="text-sm">Teacher Assignments</span>
+                <GraduationCap className="h-4 w-4 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm text-center">Teacher Assignments</span>
               </Button>
             </div>
           </CardContent>
