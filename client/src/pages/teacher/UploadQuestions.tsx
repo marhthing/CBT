@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -55,7 +54,7 @@ const TeacherUploadQuestions = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  
+
   // Data from database
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -148,7 +147,7 @@ const TeacherUploadQuestions = () => {
       'Image URL',
       'Score Per Question'
     ];
-    
+
     const csvContent = [
       headers.join(','),
       // Example rows
@@ -177,15 +176,15 @@ const TeacherUploadQuestions = () => {
         const csv = e.target?.result as string;
         const lines = csv.split('\n');
         const headers = lines[0].split(',');
-        
+
         const importedQuestions: Question[] = [];
-        
+
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
-          
+
           const values = line.split('","').map(val => val.replace(/^"|"$/g, ''));
-          
+
           if (values.length >= 7) {
             const question: Question = {
               question: values[0],
@@ -198,7 +197,7 @@ const TeacherUploadQuestions = () => {
             importedQuestions.push(question);
           }
         }
-        
+
         if (importedQuestions.length > 0) {
           setQuestions(importedQuestions);
           toast({
@@ -219,7 +218,7 @@ const TeacherUploadQuestions = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.term || !formData.class || !formData.subject || !formData.session) {
       toast({
         title: "Error",
@@ -292,11 +291,11 @@ const TeacherUploadQuestions = () => {
         title: "Success",
         description: `${questions.length} questions uploaded successfully!`,
       });
-      
+
       // Reset form
       setFormData(prev => ({ ...prev, term: "", class: "", subject: "" }));
       setQuestions([{ question: "", questionType: "multiple_choice", options: ["", "", "", ""], correctAnswer: 0 }]);
-      
+
     } catch (error: any) {
       console.error('Error uploading questions:', error);
       toast({
@@ -327,7 +326,7 @@ const TeacherUploadQuestions = () => {
                 ))}
               </div>
             </div>
-            
+
             <div>
               <Label>Correct Answer</Label>
               <RadioGroup
@@ -396,7 +395,7 @@ const TeacherUploadQuestions = () => {
                 className="mt-1"
               />
             </div>
-            
+
             <div>
               <Label>Options</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
@@ -410,7 +409,7 @@ const TeacherUploadQuestions = () => {
                 ))}
               </div>
             </div>
-            
+
             <div>
               <Label>Correct Answer</Label>
               <RadioGroup
@@ -475,7 +474,7 @@ const TeacherUploadQuestions = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Download Template
               </Button>
-              
+
               <div className="flex items-center">
                 <Input
                   type="file"
@@ -535,7 +534,7 @@ const TeacherUploadQuestions = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="class">Class</Label>
                   <Select value={formData.class} onValueChange={(value) => setFormData(prev => ({ ...prev, class: value }))}>
@@ -551,7 +550,7 @@ const TeacherUploadQuestions = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="subject">Subject</Label>
                   <Select value={formData.subject} onValueChange={(value) => setFormData(prev => ({ ...prev, subject: value }))}>
@@ -618,7 +617,7 @@ const TeacherUploadQuestions = () => {
                     rows={3}
                   />
                 </div>
-                
+
                 {renderQuestionTypeFields(question, questionIndex)}
               </CardContent>
             </Card>
@@ -634,7 +633,7 @@ const TeacherUploadQuestions = () => {
               <Plus className="h-4 w-4 mr-2" />
               Add Question
             </Button>
-            
+
             <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
               {isLoading ? "Uploading..." : "Upload Questions"}
             </Button>
