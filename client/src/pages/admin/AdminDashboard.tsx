@@ -99,10 +99,19 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         const tests = await response.json();
-        setRecentTests(tests);
+        // Filter out tests without proper user or testCode data
+        const validTests = tests.filter((test: RecentTestResult) => 
+          test.users && test.testCodes && test.users.fullName && test.testCodes.code
+        );
+        setRecentTests(validTests);
       }
     } catch (error) {
       console.error('Error fetching recent tests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load recent test results",
+        variant: "destructive"
+      });
     } finally {
       setLoadingTests(false);
     }
@@ -228,15 +237,15 @@ const AdminDashboard = () => {
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-sm">{test.users.fullName}</h3>
+                          <h3 className="font-semibold text-sm">{test.users?.fullName || 'Unknown User'}</h3>
                           <Badge variant="outline" className="text-xs">
-                            {test.testCodes.code}
+                            {test.testCodes?.code || 'N/A'}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
-                          {test.testCodes.subject} • {test.testCodes.class} • {test.testCodes.term}
+                          {test.testCodes?.subject || 'N/A'} • {test.testCodes?.class || 'N/A'} • {test.testCodes?.term || 'N/A'}
                         </p>
-                        <p className="text-xs text-gray-500">{test.users.email}</p>
+                        <p className="text-xs text-gray-500">{test.users?.email || 'No email'}</p>
                       </div>
                       <div className="text-right">
                         <div className={`font-bold text-lg ${getScoreColor(test.score, test.totalPossibleScore)}`}>
