@@ -99,6 +99,7 @@ export const testCodeBatches = pgTable("test_code_batches", {
   totalCodes: integer("total_codes").notNull(),
   isActive: boolean("is_active").default(false),
   createdAt: timestamp("created_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 // Test codes table
@@ -119,6 +120,7 @@ export const testCodes = pgTable("test_codes", {
   isActive: boolean("is_active").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"),
+  deletedAt: timestamp("deleted_at"),
 });
 
 // Test results table

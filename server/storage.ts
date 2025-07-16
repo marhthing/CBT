@@ -33,7 +33,7 @@ import {
   type InsertTestCodeBatch
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, getTableColumns, and, inArray } from "drizzle-orm";
+import { eq, sql, getTableColumns, and, inArray, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 // modify the interface with any CRUD methods
@@ -750,11 +750,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTestCodeBatches() {
-    return db.select().from(testCodeBatches).orderBy(testCodeBatches.createdAt);
+    return db.select().from(testCodeBatches)
+      .where(isNull(testCodeBatches.deletedAt))
+      .orderBy(testCodeBatches.createdAt);
   }
 
   async getTestCodesByBatch(batchId: string) {
-    return db.select().from(testCodes).where(eq(testCodes.batchId, batchId));
+    return db.select().from(testCodes)
+      .where(and(eq(testCodes.batchId, batchId), isNull(testCodes.deletedAt)));
   }
 
   async activateTestCodeBatch(batchId: string): Promise<void> {
@@ -791,24 +794,17 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTestCodeBatch(batchId: string) {
     return await db.transaction(async (tx) => {
-      // First, get all test code IDs in this batch
-      const testCodesInBatch = await tx
-        .select({ id: testCodes.id })
-        .from(testCodes)
+      // Mark all test codes in this batch as deleted
+      await tx
+        .update(testCodes)
+        .set({ deletedAt: new Date() })
         .where(eq(testCodes.batchId, batchId));
 
-      const testCodeIds = testCodesInBatch.map(tc => tc.id);
-
-      if (testCodeIds.length > 0) {
-        // Delete all test results that reference these test codes
-        await tx.delete(testResults).where(inArray(testResults.testCodeId, testCodeIds));
-
-        // Delete all test codes in this batch
-        await tx.delete(testCodes).where(eq(testCodes.batchId, batchId));
-      }
-
-      // Delete the batch itself
-      await tx.delete(testCodeBatches).where(eq(testCodeBatches.id, batchId));
+      // Mark the batch itself as deleted
+      await tx
+        .update(testCodeBatches)
+        .set({ deletedAt: new Date() })
+        .where(eq(testCodeBatches.id, batchId));
     });
   }
   async getTeacherAssignments(teacherId: string) {
