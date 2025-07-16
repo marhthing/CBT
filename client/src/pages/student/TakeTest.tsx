@@ -11,6 +11,7 @@ import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/DashboardLayout';
 import SecureTestEnvironment from '@/components/SecureTestEnvironment';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Question {
   id: number;
@@ -20,6 +21,8 @@ interface Question {
   scorePerQuestion?: number;
   originalCorrectAnswer?: number;
   optionMapping?: number[];
+    questionType: string;
+    imageUrl?: string;
 }
 
 // Utility function to shuffle an array
@@ -54,7 +57,8 @@ const shuffleQuestionOptions = (question: any): Question => {
     correctAnswer: newCorrectAnswer,
     originalCorrectAnswer: originalCorrectAnswer,
     optionMapping: shuffledIndices,
-    scorePerQuestion: question.scorePerQuestion || 1
+    scorePerQuestion: question.scorePerQuestion || 1,
+      questionType: question.questionType
   };
 };
 
@@ -63,15 +67,15 @@ const TakeTest = () => {
   const [step, setStep] = useState<"code" | "preview" | "test" | "result">("code");
   const [testCode, setTestCode] = useState("");
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<{ [key: number]: number }>({});
+  const [answers, setAnswers] = useState<{ [key: number]: any }>({});
   const [timeLeft, setTimeLeft] = useState(1800);
-  const [testData, setTestData] = useState<{
+  const [testData, setTestData<{
     title: string;
     questions: Question[];
     duration: number;
     testCodeId: string;
   } | null>(null);
-  const [testMetadata, setTestMetadata] = useState<{
+  const [testMetadata, setTestMetadata<{
     subject: string;
     class: string;
     term: string;
@@ -83,7 +87,7 @@ const TakeTest = () => {
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [securityViolations, setSecurityViolations] = useState<string[]>([]);
+  const [securityViolations, setSecurityViolations<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -103,9 +107,110 @@ const TakeTest = () => {
   }, [step, timeLeft]);
 
   const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
+    const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const renderQuestionContent = (question: any) => {
+    switch (question.questionType) {
+      case 'multiple_choice':
+        return (
+          <RadioGroup
+            value={answers[currentQuestion]?.toString() || ""}
+            onValueChange={handleAnswerChange}
+            className="space-y-3"
+          >
+            {question.options.map((option: string, index: number) => (
+              <div key={index} className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+                <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                  {String.fromCharCode(65 + index)}. {option}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+        );
+
+      case 'true_false':
+        return (
+          <RadioGroup
+            value={answers[currentQuestion]?.toString() || ""}
+            onValueChange={(value) => setAnswers(prev => ({ ...prev, [currentQuestion]: value }))}
+            className="space-y-3"
+          >
+            <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+              <RadioGroupItem value="true" id="true-option" />
+              <Label htmlFor="true-option" className="flex-1 cursor-pointer">True</Label>
+            </div>
+            <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+              <RadioGroupItem value="false" id="false-option" />
+              <Label htmlFor="false-option" className="flex-1 cursor-pointer">False</Label>
+            </div>
+          </RadioGroup>
+        );
+
+      case 'fill_blank':
+        return (
+          <div className="space-y-3">
+            <Label htmlFor="fill-blank-answer">Your Answer:</Label>
+            <Input
+              id="fill-blank-answer"
+              placeholder="Type your answer here..."
+              value={answers[currentQuestion] || ""}
+              onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
+              className="w-full"
+            />
+          </div>
+        );
+
+      case 'essay':
+        return (
+          <div className="space-y-3">
+            <Label htmlFor="essay-answer">Your Answer:</Label>
+            <Textarea
+              id="essay-answer"
+              placeholder="Write your essay answer here..."
+              value={answers[currentQuestion] || ""}
+              onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
+              className="w-full min-h-[200px]"
+              rows={8}
+            />
+          </div>
+        );
+
+      case 'image_based':
+        return (
+          <div className="space-y-4">
+            {question.imageUrl && (
+              <div className="flex justify-center">
+                <img 
+                  src={question.imageUrl} 
+                  alt="Question image" 
+                  className="max-w-full h-auto max-h-96 rounded-lg border"
+                />
+              </div>
+            )}
+            <RadioGroup
+              value={answers[currentQuestion]?.toString() || ""}
+              onValueChange={handleAnswerChange}
+              className="space-y-3"
+            >
+              {question.options.map((option: string, index: number) => (
+                <div key={index} className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+                  <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                  <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                    {String.fromCharCode(65 + index)}. {option}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+        );
+
+      default:
+        return <div>Unsupported question type</div>;
+    }
   };
 
   const handleStartTest = async () => {
@@ -513,27 +618,10 @@ const TakeTest = () => {
               <CardTitle className="text-lg sm:text-xl leading-relaxed">{question.question}</CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup
-                value={answers[currentQuestion]?.toString() || ""}
-                onValueChange={handleAnswerChange}
-                className="space-y-4"
-              >
-                {question.options.map((option, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                    <RadioGroupItem 
-                      value={index.toString()} 
-                      id={`option-${index}`} 
-                      className="mt-1 flex-shrink-0"
-                    />
-                    <Label 
-                      htmlFor={`option-${index}`} 
-                      className="flex-1 cursor-pointer text-sm sm:text-base leading-relaxed"
-                    >
-                      {option}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+              <div className="mb-6">
+                  <h2 className="text-lg font-medium mb-4">{question.question}</h2>
+                  {renderQuestionContent(question)}
+                </div>
             </CardContent>
           </Card>
 

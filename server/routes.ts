@@ -883,7 +883,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const percentage = Math.round((result.score / result.totalPossibleScore) * 100);
         const timeTaken = result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A';
         const date = new Date(result.createdAt).toLocaleDateString();
-        
+
         return [
           result.studentName,
           result.testCodes.subject,
@@ -904,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set headers for CSV download
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="test_results_${subject}_${className}_${term}_${sessionName}.csv"`);
-      
+
       res.send(csvContent);
     } catch (error) {
       console.error('Export CSV error:', error);
@@ -1007,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const percentage = Math.round((result.score / result.totalPossibleScore) * 100);
                 const timeTaken = result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A';
                 const date = new Date(result.createdAt).toLocaleDateString();
-                
+
                 return `
                   <tr>
                     <td>${result.studentName}</td>
@@ -1036,7 +1036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="test_results_${subject}_${className}_${term}_${sessionName}.pdf"`);
       res.setHeader('Content-Length', pdfBuffer.length);
-      
+
       res.send(pdfBuffer);
     } catch (error) {
       console.error('Export PDF error:', error);
@@ -1114,40 +1114,157 @@ app.get("/api/test-code-batches/:batchId/codes", async (req, res) => {
 });
 
 // Dashboard stats
-app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
-  try {
-    const profile = req.session.profile;
+  app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
+    try {
+      const profile = req.session.profile;
 
-    if (profile.role !== 'admin') {
-      return res.status(403).json({ error: "Forbidden" });
+      if (profile.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      // Get total test results count (tests taken)
+      const testsTakenResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(testResults);
+
+      // Get total active test codes
+      const activeCodesResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(testCodes)
+        .where(eq(testCodes.isActive, true));
+
+      // Get total test codes (including inactive)
+      const totalCodesResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(testCodes);
+
+      res.json({
+        testsTaken: Number(testsTakenResult[0]?.count || 0),
+        activeTestCodes: Number(activeCodesResult[0]?.count || 0),
+        totalTestCodes: Number(totalCodesResult[0]?.count || 0)
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard stats" });
     }
+  });
 
-    // Get total test results count (tests taken)
-    const testsTakenResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(testResults);
+  // Bulk export questions
+  app.get('/api/questions/export', requireAuth, async (req, res) => {
+    try {
+      const profile = req.session.profile;
 
-    // Get total active test codes
-    const activeCodesResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(testCodes)
-      .where(eq(testCodes.isActive, true));
+      if (profile.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
-    // Get total test codes (including inactive)
-    const totalCodesResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(testCodes);
+      const { subject, class: className, term } = req.query;
 
-    res.json({
-      testsTaken: Number(testsTakenResult[0]?.count || 0),
-      activeTestCodes: Number(activeCodesResult[0]?.count || 0),
-      totalTestCodes: Number(totalCodesResult[0]?.count || 0)
-    });
-  } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
-    res.status(500).json({ error: "Failed to fetch dashboard stats" });
-  }
-});
+      let query = db
+        .select({
+          id: questions.id,
+          question: questions.question,
+          questionType: questions.questionType,
+          optionA: questions.optionA,
+          optionB: questions.optionB,
+          optionC: questions.optionC,
+          optionD: questions.optionD,
+          correctAnswer: questions.correctAnswer,
+          correctAnswerText: questions.correctAnswerText,
+          imageUrl: questions.imageUrl,
+          subject: questions.subject,
+          class: questions.class,
+          term: questions.term,
+          scorePerQuestion: questions.scorePerQuestion,
+          teacherName: sql<string>`COALESCE(profiles.full_name, profiles.email)`,
+        })
+        .from(questions)
+        .leftJoin(profiles, eq(questions.teacherId, profiles.userId));
+
+      const conditions = [];
+      if (subject) conditions.push(eq(questions.subject, subject as string));
+      if (className) conditions.push(eq(questions.class, className as string));
+      if (term) conditions.push(eq(questions.term, term as string));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      const questionsData = await query;
+
+      // Generate CSV content
+      const csvHeaders = ['ID', 'Question', 'Question Type', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Correct Answer Text', 'Image URL', 'Subject', 'Class', 'Term', 'Score', 'Teacher'];
+      const csvRows = questionsData.map(q => [
+        q.id,
+        q.question,
+        q.questionType,
+        q.optionA || '',
+        q.optionB || '',
+        q.optionC || '',
+        q.optionD || '',
+        q.correctAnswer || '',
+        q.correctAnswerText || '',
+        q.imageUrl || '',
+        q.subject,
+        q.class,
+        q.term,
+        q.scorePerQuestion?.toString() || '1',
+        q.teacherName
+      ].map(field => `"${field}"`).join(','));
+
+      const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="questions_export_${Date.now()}.csv"`);
+
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Export questions error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Bulk export students
+  app.get('/api/students/export', requireAuth, async (req, res) => {
+    try {
+      const profile = req.session.profile;
+
+      if (profile.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const students = await db
+        .select({
+          id: profiles.userId,
+          email: profiles.email,
+          fullName: profiles.fullName,
+          createdAt: profiles.createdAt,
+        })
+        .from(profiles)
+        .where(eq(profiles.role, 'student'));
+
+      // Generate CSV content
+      const csvHeaders = ['ID', 'Email', 'Full Name', 'Registration Date'];
+      const csvRows = students.map(student => [
+        student.id,
+        student.email,
+        student.fullName || '',
+        new Date(student.createdAt!).toLocaleDateString()
+      ].map(field => `"${field}"`).join(','));
+
+      const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="students_export_${Date.now()}.csv"`);
+
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Export students error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
 
   const server = createServer(app);
   return server;
