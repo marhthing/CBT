@@ -33,24 +33,21 @@ interface TestAnalysis {
   classBreakdown: { [key: string]: number };
 }
 
-interface RecentTestResult {
-  id: string;
-  score: number;
-  totalQuestions: number;
-  totalPossibleScore: number;
-  timeTaken: number;
-  createdAt: string;
-  testCodes: {
-    code: string;
-    subject: string;
-    class: string;
-    term: string;
-    session: string;
-  };
-  users: {
-    fullName: string;
-    email: string;
-  };
+interface TestAnalyticsByGroup {
+  testKey: string;
+  subject: string;
+  class: string;
+  term: string;
+  session: string;
+  totalParticipation: number;
+  passCount: number;
+  failCount: number;
+  passPercentage: number;
+  failPercentage: number;
+  averageScore: number;
+  highestScore: number;
+  lowestScore: number;
+  lastTestDate: string;
 }
 
 const AdminDashboard = () => {
@@ -63,7 +60,7 @@ const AdminDashboard = () => {
     totalQuestions: 0
   });
   const [loading, setLoading] = useState(true);
-  const [recentTests, setRecentTests] = useState<RecentTestResult[]>([]);
+  const [testAnalyticsByGroup, setTestAnalyticsByGroup] = useState<TestAnalyticsByGroup[]>([]);
   const [loadingTests, setLoadingTests] = useState(true);
   const [testAnalysis, setTestAnalysis] = useState<TestAnalysis>({
     totalTests: 0,
@@ -78,7 +75,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchStats();
-    fetchRecentTests();
+    fetchTestAnalytics();
   }, []);
 
   const fetchStats = async () => {
@@ -112,7 +109,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchRecentTests = async () => {
+  const fetchTestAnalytics = async () => {
     try {
       // Fetch all test results for admin analysis
       const response = await fetch('/api/test-results', {
@@ -123,36 +120,60 @@ const AdminDashboard = () => {
         const tests = await response.json();
         console.log('Fetched test results:', tests.length);
         
-        // Sort by most recent and take last 10 for display
-        const sortedTests = tests
-          .filter((test: any) => test.testCodes) // Only tests with test code info
-          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          .slice(0, 10);
-
-        // Transform to expected format
-        const transformedTests = sortedTests.map((test: any) => ({
-          id: test.id,
-          score: test.score,
-          totalQuestions: test.totalQuestions,
-          totalPossibleScore: test.totalPossibleScore,
-          timeTaken: test.timeTaken,
-          createdAt: test.createdAt,
-          testCodes: {
-            code: test.testCodes?.code || 'N/A',
-            subject: test.testCodes?.subject || 'N/A',
-            class: test.testCodes?.class || 'N/A',
-            term: test.testCodes?.term || 'N/A',
-            session: test.testCodes?.session || 'N/A'
-          },
-          users: {
-            fullName: 'Student', // We'll show generic name since we don't have user data
-            email: 'student@school.com'
+        // Group tests by class + session + term + subject combination
+        const testGroups: { [key: string]: any[] } = {};
+        
+        tests.forEach((test: any) => {
+          if (test.testCodes && test.totalPossibleScore > 0) {
+            const key = `${test.testCodes.class}_${test.testCodes.session}_${test.testCodes.term}_${test.testCodes.subject}`;
+            if (!testGroups[key]) {
+              testGroups[key] = [];
+            }
+            testGroups[key].push(test);
           }
-        }));
+        });
 
-        setRecentTests(transformedTests);
+        // Calculate analytics for each group
+        const analytics: TestAnalyticsByGroup[] = Object.entries(testGroups).map(([key, groupTests]) => {
+          const firstTest = groupTests[0];
+          const passThreshold = 50; // 50% pass rate
+          
+          const scores = groupTests.map((test: any) => (test.score / test.totalPossibleScore) * 100);
+          const passCount = scores.filter(score => score >= passThreshold).length;
+          const failCount = groupTests.length - passCount;
+          
+          // Get the most recent test date
+          const latestDate = Math.max(...groupTests.map((test: any) => new Date(test.createdAt).getTime()));
+          
+          return {
+            testKey: key,
+            subject: firstTest.testCodes.subject,
+            class: firstTest.testCodes.class,
+            term: firstTest.testCodes.term,
+            session: firstTest.testCodes.session,
+            totalParticipation: groupTests.length,
+            passCount,
+            failCount,
+            passPercentage: groupTests.length > 0 ? Math.round((passCount / groupTests.length) * 100) : 0,
+            failPercentage: groupTests.length > 0 ? Math.round((failCount / groupTests.length) * 100) : 0,
+            averageScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+            highestScore: scores.length > 0 ? Math.round(Math.max(...scores)) : 0,
+            lowestScore: scores.length > 0 ? Math.round(Math.min(...scores)) : 0,
+            lastTestDate: new Date(latestDate).toLocaleDateString()
+          };
+        });
 
-        // Calculate analysis for all tests (not just recent 10)
+        // Sort by most recent test date and total participation
+        analytics.sort((a, b) => {
+          const dateA = new Date(a.lastTestDate).getTime();
+          const dateB = new Date(b.lastTestDate).getTime();
+          if (dateB !== dateA) return dateB - dateA;
+          return b.totalParticipation - a.totalParticipation;
+        });
+
+        setTestAnalyticsByGroup(analytics);
+
+        // Calculate overall analysis for all tests
         if (tests.length > 0) {
           const validTests = tests.filter((test: any) => test.testCodes && test.totalPossibleScore > 0);
           
@@ -184,10 +205,10 @@ const AdminDashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching recent tests:', error);
+      console.error('Error fetching test analytics:', error);
       toast({
         title: "Error",
-        description: "Failed to load recent test results",
+        description: "Failed to load test analytics",
         variant: "destructive"
       });
     } finally {
@@ -384,12 +405,12 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Recent Test Results */}
+        {/* Test Analytics by Group */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <FileText className="h-5 w-5 mr-2" />
-              Recent Test Results
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Test Analytics by Class/Subject/Term/Session
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -397,46 +418,79 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-            ) : recentTests.length === 0 ? (
+            ) : testAnalyticsByGroup.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No test results available
+                No test analytics available
               </div>
             ) : (
               <div className="space-y-4">
-                {recentTests.map((test) => (
-                  <div key={test.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                {testAnalyticsByGroup.slice(0, 10).map((analytics) => (
+                  <div key={analytics.testKey} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-sm">Test Result</h3>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h3 className="font-semibold text-lg text-gray-900">
+                            {analytics.subject}
+                          </h3>
                           <Badge variant="outline" className="text-xs">
-                            {test.testCodes?.code || 'N/A'}
+                            {analytics.class}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
-                          {test.testCodes?.subject || 'N/A'} • {test.testCodes?.class || 'N/A'} • {test.testCodes?.term || 'N/A'}
+                          {analytics.session} • {analytics.term}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {test.totalQuestions} questions • {test.testCodes?.session || 'N/A'}
+                          Last test: {analytics.lastTestDate}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-bold text-lg ${getScoreColor(test.score, test.totalPossibleScore)}`}>
-                          {test.score}/{test.totalPossibleScore}
+                      
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <div className="text-2xl font-bold text-blue-600">
+                            {analytics.totalParticipation}
+                          </div>
+                          <div className="text-xs text-gray-600">Total Participation</div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {Math.round((test.score / test.totalPossibleScore) * 100)}%
+                        
+                        <div className="bg-green-50 p-3 rounded-lg">
+                          <div className="text-xl font-bold text-green-600">
+                            {analytics.passCount}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Pass ({analytics.passPercentage}%)
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Time: {formatTime(test.timeTaken)}
+                        
+                        <div className="bg-red-50 p-3 rounded-lg">
+                          <div className="text-xl font-bold text-red-600">
+                            {analytics.failCount}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Fail ({analytics.failPercentage}%)
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-400">
-                          {new Date(test.createdAt).toLocaleDateString()}
+                        
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-xl font-bold text-gray-600">
+                            {analytics.averageScore}%
+                          </div>
+                          <div className="text-xs text-gray-600">Average Score</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {analytics.lowestScore}% - {analytics.highestScore}%
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
+                
+                {testAnalyticsByGroup.length > 10 && (
+                  <div className="text-center pt-4">
+                    <p className="text-sm text-gray-500">
+                      Showing top 10 results. Go to Export Results for complete data.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
