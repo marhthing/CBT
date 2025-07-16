@@ -170,12 +170,6 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
 
     const handleContextMenu = (e: MouseEvent) => {
       if (isSecureMode) {
-        // Allow context menu on input fields for mobile keyboards
-        const target = e.target as HTMLElement;
-        if (isMobile && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-          return;
-        }
-
         e.preventDefault();
         const violation = `Attempted to open context menu at ${new Date().toLocaleTimeString()}`;
         setViolations(prev => [...prev, violation]);
@@ -225,17 +219,11 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     };
   }, [isSecureMode, isTestActive, isMobile, onSecurityViolation]);
 
-  // Disable copy/paste (but allow normal typing)
+  // Disable copy/paste completely (but allow normal typing)
   useEffect(() => {
     if (!isSecureMode) return;
 
     const handleCopy = (e: ClipboardEvent) => {
-      // Allow copy/paste in input fields on mobile for better user experience
-      const target = e.target as HTMLElement;
-      if (isMobile && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-        return; // Allow copy/paste in form fields on mobile
-      }
-      
       e.preventDefault();
       const violation = `Attempted to copy content at ${new Date().toLocaleTimeString()}`;
       setViolations(prev => [...prev, violation]);
@@ -243,12 +231,6 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
     };
 
     const handlePaste = (e: ClipboardEvent) => {
-      // Allow copy/paste in input fields on mobile for better user experience
-      const target = e.target as HTMLElement;
-      if (isMobile && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-        return; // Allow copy/paste in form fields on mobile
-      }
-      
       e.preventDefault();
       const violation = `Attempted to paste content at ${new Date().toLocaleTimeString()}`;
       setViolations(prev => [...prev, violation]);
@@ -262,7 +244,7 @@ const SecureTestEnvironment: React.FC<SecureTestEnvironmentProps> = ({
       document.removeEventListener('copy', handleCopy);
       document.removeEventListener('paste', handlePaste);
     };
-  }, [isSecureMode, isMobile, onSecurityViolation]);
+  }, [isSecureMode, onSecurityViolation]);
 
   // Prevent zooming on mobile (but allow keyboard interactions)
   useEffect(() => {
