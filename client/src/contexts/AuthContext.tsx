@@ -51,10 +51,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(data.profile);
           setSession({ user: data.user, profile: data.profile });
         } else {
+          // No active session, ensure user is logged out
           setUser(null);
           setProfile(null);
           setSession(null);
+          // Clear any potential stale session data
+          await fetch('/api/auth/signout', {
+            method: 'POST',
+            credentials: 'include',
+          }).catch(() => {
+            // Ignore errors if signout fails
+          });
         }
+      } else {
+        // Session check failed, clear everything
+        setUser(null);
+        setProfile(null);
+        setSession(null);
       }
     } catch (error) {
       console.error('Error checking session:', error);
