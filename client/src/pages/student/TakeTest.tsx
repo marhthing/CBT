@@ -1,7 +1,3 @@
-The code has been modified to make the entire option clickable for checkbox selection and to display the test type in various places.
-```
-
-```replit_final_file
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
