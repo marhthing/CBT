@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/DashboardLayout';
-import SecureTestEnvironment from '@/components/SecureTestEnvironment';
+
 import { Textarea } from '@/components/ui/textarea';
 
 interface Question {
@@ -105,7 +105,6 @@ const TakeTest = () => {
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [securityViolations, setSecurityViolations] = useState<string[]>([]);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const navigate = useNavigate();
 
@@ -359,6 +358,16 @@ const TakeTest = () => {
       setTimeLeft(testMetadata.timeLimit * 60);
       setStep("test");
 
+      // Mark the test code as inactive immediately when test starts
+      try {
+        await fetch(`/api/test-codes/${testCode.toUpperCase()}/deactivate`, {
+          method: 'PUT',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Error deactivating test code:', error);
+      }
+
       toast({
         title: "Test Started",
         description: "Good luck with your test!",
@@ -404,25 +413,7 @@ const TakeTest = () => {
     }
   };
 
-  const handleSecurityViolation = (violation: string) => {
-    setSecurityViolations(prev => [...prev, violation]);
-    console.log('Security violation:', violation);
-
-    if (securityViolations.length >= 2 && !submitting) {
-      toast({
-        title: "Security Alert",
-        description: "Multiple violations detected. Test will be auto-submitted.",
-        variant: "destructive"
-      });
-      handleSubmitTest();
-    } else {
-      toast({
-        title: "Security Warning",
-        description: violation,
-        variant: "destructive"
-      });
-    }
-  };
+  
 
   const handleRequestSubmit = () => {
     setShowSubmitModal(true);
@@ -494,8 +485,7 @@ const TakeTest = () => {
           totalQuestions: testData.questions.length,
           totalPossibleScore: totalPossibleScore,
           timeTaken: timeTaken,
-          answers: mappedAnswers,
-          securityViolations: securityViolations
+          answers: mappedAnswers
         })
       });
 
@@ -503,11 +493,6 @@ const TakeTest = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to submit test');
       }
-
-      await fetch(`/api/test-codes/${testCode.toUpperCase()}/deactivate`, {
-        method: 'PUT',
-        credentials: 'include'
-      });
 
       setScore(totalScore);
       setStep("result");
@@ -651,11 +636,7 @@ const TakeTest = () => {
   const question = testData.questions[currentQuestion];
 
   return (
-    <SecureTestEnvironment 
-      onSecurityViolation={handleSecurityViolation} 
-      isActive={step === "test"}
-    >
-      <DashboardLayout>
+    <DashboardLayout>
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2">
             <div>
@@ -749,7 +730,6 @@ const TakeTest = () => {
           </Dialog>
         </div>
       </DashboardLayout>
-    </SecureTestEnvironment>
   );
 };
 
