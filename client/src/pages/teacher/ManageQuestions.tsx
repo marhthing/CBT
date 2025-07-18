@@ -68,6 +68,7 @@ const ManageQuestions = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -78,19 +79,23 @@ const ManageQuestions = () => {
 
   const fetchFilterData = async () => {
     try {
-      const [subjectsRes, classesRes, termsRes] = await Promise.all([
-        fetch('/api/subjects', { credentials: 'include' }),
-        fetch('/api/classes', { credentials: 'include' }),
+      const [assignmentsRes, termsRes] = await Promise.all([
+        fetch('/api/my-assignments', { credentials: 'include' }),
         fetch('/api/terms', { credentials: 'include' })
       ]);
 
-      const subjects = subjectsRes.ok ? await subjectsRes.json() : [];
-      const classes = classesRes.ok ? await classesRes.json() : [];
+      const assignments = assignmentsRes.ok ? await assignmentsRes.json() : [];
       const terms = termsRes.ok ? await termsRes.json() : [];
 
-      setSubjects(subjects);
-      setClasses(classes);
+      setAssignments(assignments);
       setTerms(terms);
+
+      // Extract unique subjects and classes from assignments
+      const uniqueSubjects = [...new Set(assignments.map((a: any) => a.subject))];
+      const uniqueClasses = [...new Set(assignments.map((a: any) => a.class))];
+
+      setSubjects(uniqueSubjects.map((name, index) => ({ id: index.toString(), name })));
+      setClasses(uniqueClasses.map((name, index) => ({ id: index.toString(), name })));
     } catch (error) {
       console.error('Error fetching filter data:', error);
     } finally {

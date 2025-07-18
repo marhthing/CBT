@@ -675,7 +675,47 @@ const TakeTest = () => {
               <CardTitle className="text-lg sm:text-xl leading-relaxed">{question.question}</CardTitle>
             </CardHeader>
             <CardContent>
-              {renderQuestionContent(question)}
+              {question.questionType === 'multiple_choice' && (
+                        <div className="space-y-3">
+                          {[question.options[0], question.options[1], question.options[2], question.options[3]].map((option, optionIndex) => (
+                            <div 
+                              key={optionIndex} 
+                              className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleAnswerChange(optionIndex.toString())}
+                            >
+                              <RadioGroupItem value={optionIndex.toString()} id={`question-${question.id}-option-${optionIndex}`} />
+                              <label 
+                                htmlFor={`question-${question.id}-option-${optionIndex}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                              >
+                                {String.fromCharCode(65 + optionIndex)}. {option}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+              {question.questionType === 'true_false' && (
+                        <div className="space-y-3">
+                          {['true', 'false'].map((option) => (
+                            <div 
+                              key={option} 
+                              className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleAnswerChange(option)}
+                            >
+                              <RadioGroupItem 
+                                value={option} 
+                                id={`question-${question.id}-${option}`}
+                              />
+                              <label 
+                                htmlFor={`question-${question.id}-${option}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                              >
+                                {option.charAt(0).toUpperCase() + option.slice(1)}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
             </CardContent>
           </Card>
 

@@ -60,6 +60,7 @@ const TeacherUploadQuestions = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
   useEffect(() => {
     fetchFormData();
@@ -67,22 +68,26 @@ const TeacherUploadQuestions = () => {
 
   const fetchFormData = async () => {
     try {
-      const [subjectsRes, classesRes, termsRes, sessionsRes] = await Promise.all([
-        fetch('/api/subjects', { credentials: 'include' }),
-        fetch('/api/classes', { credentials: 'include' }),
+      const [assignmentsRes, termsRes, sessionsRes] = await Promise.all([
+        fetch('/api/my-assignments', { credentials: 'include' }),
         fetch('/api/terms', { credentials: 'include' }),
         fetch('/api/sessions', { credentials: 'include' })
       ]);
 
-      const subjects = subjectsRes.ok ? await subjectsRes.json() : [];
-      const classes = classesRes.ok ? await classesRes.json() : [];
+      const assignments = assignmentsRes.ok ? await assignmentsRes.json() : [];
       const terms = termsRes.ok ? await termsRes.json() : [];
       const sessions = sessionsRes.ok ? await sessionsRes.json() : [];
 
-      setSubjects(subjects);
-      setClasses(classes);
+      setAssignments(assignments);
       setTerms(terms);
       setSessions(sessions);
+
+      // Extract unique subjects and classes from assignments
+      const uniqueSubjects = [...new Set(assignments.map((a: any) => a.subject))];
+      const uniqueClasses = [...new Set(assignments.map((a: any) => a.class))];
+
+      setSubjects(uniqueSubjects.map((name, index) => ({ id: index.toString(), name })));
+      setClasses(uniqueClasses.map((name, index) => ({ id: index.toString(), name })));
 
       // Set current session as default
       const currentSession = sessions.find((s: any) => s.isCurrent);
