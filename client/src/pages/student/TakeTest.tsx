@@ -135,67 +135,68 @@ const TakeTest = () => {
     switch (question.questionType) {
       case 'multiple_choice':
         return (
-          <RadioGroup
-            value={answers[currentQuestion]?.toString() || ""}
-            onValueChange={handleAnswerChange}
-            className="space-y-3"
-          >
+          <div className="space-y-3">
             {question.options.map((option: string, index: number) => (
               <div 
                 key={index} 
-                className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => handleAnswerChange(index.toString())}
+                className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  answers[currentQuestion] === index ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setAnswers(prev => ({ ...prev, [currentQuestion]: index }));
+                }}
               >
-                <RadioGroupItem 
-                  value={index.toString()} 
-                  id={`question-${currentQuestion}-option-${index}`}
-                  className="pointer-events-none"
-                />
-                <Label 
-                  htmlFor={`question-${currentQuestion}-option-${index}`} 
-                  className="flex-1 cursor-pointer text-sm font-medium"
-                >
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    name={`question-${currentQuestion}`}
+                    value={index}
+                    checked={answers[currentQuestion] === index}
+                    onChange={() => {
+                      setAnswers(prev => ({ ...prev, [currentQuestion]: index }));
+                    }}
+                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                </div>
+                <label className="flex-1 cursor-pointer text-sm font-medium">
                   {String.fromCharCode(65 + index)}. {option}
-                </Label>
+                </label>
               </div>
             ))}
-          </RadioGroup>
+          </div>
         );
 
       case 'true_false':
         return (
-          <RadioGroup
-            value={answers[currentQuestion]?.toString() || ""}
-            onValueChange={(value) => setAnswers(prev => ({ ...prev, [currentQuestion]: value }))}
-            className="space-y-3"
-          >
-            <div 
-              className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
-              onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion]: "true" }))}
-            >
-              <RadioGroupItem 
-                value="true" 
-                id={`question-${currentQuestion}-true`}
-                className="pointer-events-none"
-              />
-              <Label htmlFor={`question-${currentQuestion}-true`} className="flex-1 cursor-pointer text-sm font-medium">
-                True
-              </Label>
-            </div>
-            <div 
-              className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
-              onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion]: "false" }))}
-            >
-              <RadioGroupItem 
-                value="false" 
-                id={`question-${currentQuestion}-false`}
-                className="pointer-events-none"
-              />
-              <Label htmlFor={`question-${currentQuestion}-false`} className="flex-1 cursor-pointer text-sm font-medium">
-                False
-              </Label>
-            </div>
-          </RadioGroup>
+          <div className="space-y-3">
+            {['true', 'false'].map((option) => (
+              <div 
+                key={option} 
+                className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  answers[currentQuestion] === option ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setAnswers(prev => ({ ...prev, [currentQuestion]: option }));
+                }}
+              >
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    name={`question-${currentQuestion}`}
+                    value={option}
+                    checked={answers[currentQuestion] === option}
+                    onChange={() => {
+                      setAnswers(prev => ({ ...prev, [currentQuestion]: option }));
+                    }}
+                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                </div>
+                <label className="flex-1 cursor-pointer text-sm font-medium">
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </label>
+              </div>
+            ))}
+          </div>
         );
 
       case 'fill_blank':
@@ -245,31 +246,35 @@ const TakeTest = () => {
                 />
               </div>
             )}
-            <RadioGroup
-              value={answers[currentQuestion]?.toString() || ""}
-              onValueChange={handleAnswerChange}
-              className="space-y-3"
-            >
+            <div className="space-y-3">
               {question.options.map((option: string, index: number) => (
                 <div 
                   key={index} 
-                  className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => handleAnswerChange(index.toString())}
+                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    answers[currentQuestion] === index ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => {
+                    setAnswers(prev => ({ ...prev, [currentQuestion]: index }));
+                  }}
                 >
-                  <RadioGroupItem 
-                    value={index.toString()} 
-                    id={`question-${currentQuestion}-image-option-${index}`}
-                    className="pointer-events-none"
-                  />
-                  <Label 
-                    htmlFor={`question-${currentQuestion}-image-option-${index}`} 
-                    className="flex-1 cursor-pointer text-sm font-medium"
-                  >
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name={`question-${currentQuestion}`}
+                      value={index}
+                      checked={answers[currentQuestion] === index}
+                      onChange={() => {
+                        setAnswers(prev => ({ ...prev, [currentQuestion]: index }));
+                      }}
+                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                  </div>
+                  <label className="flex-1 cursor-pointer text-sm font-medium">
                     {String.fromCharCode(65 + index)}. {option}
-                  </Label>
+                  </label>
                 </div>
               ))}
-            </RadioGroup>
+            </div>
           </div>
         );
 
@@ -411,21 +416,7 @@ const TakeTest = () => {
     }
   };
 
-  const handleAnswerChange = useCallback((value: string) => {
-    const question = testData?.questions[currentQuestion];
-    if (!question) return;
-
-    let answerValue: any = value;
-
-    if (question.questionType === 'multiple_choice' || question.questionType === 'image_based') {
-      answerValue = parseInt(value);
-    }
-
-    setAnswers(prev => ({
-      ...prev,
-      [currentQuestion]: answerValue
-    }));
-  }, [testData, currentQuestion]);
+  
 
   const handleNextQuestion = () => {
     if (!testData) return;
