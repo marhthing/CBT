@@ -142,7 +142,11 @@ const TakeTest = () => {
             className="space-y-3"
           >
             {question.options.map((option: string, index: number) => (
-              <div key={index} className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+              <div 
+                key={index} 
+                className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleAnswerChange(index.toString())}
+              >
                 <RadioGroupItem value={index.toString()} id={`option-${index}`} />
                 <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                   {String.fromCharCode(65 + index)}. {option}
@@ -159,11 +163,17 @@ const TakeTest = () => {
             onValueChange={(value) => setAnswers(prev => ({ ...prev, [currentQuestion]: value }))}
             className="space-y-3"
           >
-            <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+            <div 
+              className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+              onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion]: "true" }))}
+            >
               <RadioGroupItem value="true" id="true-option" />
               <Label htmlFor="true-option" className="flex-1 cursor-pointer">True</Label>
             </div>
-            <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+            <div 
+              className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+              onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion]: "false" }))}
+            >
               <RadioGroupItem value="false" id="false-option" />
               <Label htmlFor="false-option" className="flex-1 cursor-pointer">False</Label>
             </div>
@@ -223,7 +233,11 @@ const TakeTest = () => {
               className="space-y-3"
             >
               {question.options.map((option: string, index: number) => (
-                <div key={index} className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50">
+                <div 
+                  key={index} 
+                  className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleAnswerChange(index.toString())}
+                >
                   <RadioGroupItem value={index.toString()} id={`option-${index}`} />
                   <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                     {String.fromCharCode(65 + index)}. {option}
