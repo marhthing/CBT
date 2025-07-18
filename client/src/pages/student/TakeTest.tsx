@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/DashboardLayout';
+import SecureTestEnvironment from '@/components/SecureTestEnvironment';
 
 import { Textarea } from '@/components/ui/textarea';
 
@@ -142,11 +143,18 @@ const TakeTest = () => {
             {question.options.map((option: string, index: number) => (
               <div 
                 key={index} 
-                className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => handleAnswerChange(index.toString())}
               >
-                <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                <RadioGroupItem 
+                  value={index.toString()} 
+                  id={`question-${currentQuestion}-option-${index}`}
+                  className="pointer-events-none"
+                />
+                <Label 
+                  htmlFor={`question-${currentQuestion}-option-${index}`} 
+                  className="flex-1 cursor-pointer text-sm font-medium"
+                >
                   {String.fromCharCode(65 + index)}. {option}
                 </Label>
               </div>
@@ -162,18 +170,30 @@ const TakeTest = () => {
             className="space-y-3"
           >
             <div 
-              className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+              className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
               onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion]: "true" }))}
             >
-              <RadioGroupItem value="true" id="true-option" />
-              <Label htmlFor="true-option" className="flex-1 cursor-pointer">True</Label>
+              <RadioGroupItem 
+                value="true" 
+                id={`question-${currentQuestion}-true`}
+                className="pointer-events-none"
+              />
+              <Label htmlFor={`question-${currentQuestion}-true`} className="flex-1 cursor-pointer text-sm font-medium">
+                True
+              </Label>
             </div>
             <div 
-              className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+              className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
               onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion]: "false" }))}
             >
-              <RadioGroupItem value="false" id="false-option" />
-              <Label htmlFor="false-option" className="flex-1 cursor-pointer">False</Label>
+              <RadioGroupItem 
+                value="false" 
+                id={`question-${currentQuestion}-false`}
+                className="pointer-events-none"
+              />
+              <Label htmlFor={`question-${currentQuestion}-false`} className="flex-1 cursor-pointer text-sm font-medium">
+                False
+              </Label>
             </div>
           </RadioGroup>
         );
@@ -233,11 +253,18 @@ const TakeTest = () => {
               {question.options.map((option: string, index: number) => (
                 <div 
                   key={index} 
-                  className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
                   onClick={() => handleAnswerChange(index.toString())}
                 >
-                  <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                  <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                  <RadioGroupItem 
+                    value={index.toString()} 
+                    id={`question-${currentQuestion}-image-option-${index}`}
+                    className="pointer-events-none"
+                  />
+                  <Label 
+                    htmlFor={`question-${currentQuestion}-image-option-${index}`} 
+                    className="flex-1 cursor-pointer text-sm font-medium"
+                  >
                     {String.fromCharCode(65 + index)}. {option}
                   </Label>
                 </div>
@@ -637,6 +664,17 @@ const TakeTest = () => {
 
   return (
     <DashboardLayout>
+      <SecureTestEnvironment
+        isActive={step === "test"}
+        onSecurityViolation={(violation) => {
+          console.warn('Security violation:', violation);
+          toast({
+            title: "Security Warning",
+            description: violation,
+            variant: "destructive"
+          });
+        }}
+      >
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2">
             <div>
@@ -729,7 +767,8 @@ const TakeTest = () => {
             </DialogContent>
           </Dialog>
         </div>
-      </DashboardLayout>
+      </SecureTestEnvironment>
+    </DashboardLayout>
   );
 };
 
