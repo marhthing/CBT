@@ -279,7 +279,12 @@ const StudentDashboard = () => {
                             <div key={result.id} className="border rounded-lg p-3 sm:p-4">
                                 <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-2">
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-semibold text-sm sm:text-base truncate">{result.testCodes.subject}</h3>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-semibold text-sm sm:text-base truncate">{result.testCodes.subject}</h3>
+                                            <Badge variant="outline" className="text-xs">
+                                                {result.testCodes.testType}
+                                            </Badge>
+                                        </div>
                                         <p className="text-xs sm:text-sm text-muted-foreground">
                                             {result.testCodes.class} • {result.testCodes.term} • {result.testCodes.session}
                                         </p>

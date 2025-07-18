@@ -39,6 +39,7 @@ interface TestAnalyticsByGroup {
   class: string;
   term: string;
   session: string;
+  testType: string;
   totalParticipation: number;
   passCount: number;
   failCount: number;
@@ -84,7 +85,7 @@ const AdminDashboard = () => {
     // Apply search filter
     if (searchTerm) {
       const filteredAnalytics = allTestAnalytics.filter((analytics) => {
-        const searchStr = `${analytics.subject} ${analytics.class} ${analytics.term} ${analytics.session}`.toLowerCase();
+        const searchStr = `${analytics.subject} ${analytics.class} ${analytics.term} ${analytics.session} ${analytics.testType}`.toLowerCase();
         return searchStr.includes(searchTerm.toLowerCase());
       });
       setTestAnalyticsByGroup(filteredAnalytics);
@@ -141,7 +142,7 @@ const AdminDashboard = () => {
 
         tests.forEach((test: any) => {
           if (test.testCodes && test.totalPossibleScore > 0) {
-            const key = `${test.testCodes.class}_${test.testCodes.session}_${test.testCodes.term}_${test.testCodes.subject}`;
+            const key = `${test.testCodes.class}_${test.testCodes.session}_${test.testCodes.term}_${test.testCodes.subject}_${test.testCodes.testType}`;
             if (!testGroups[key]) {
               testGroups[key] = [];
             }
@@ -167,6 +168,7 @@ const AdminDashboard = () => {
             class: firstTest.testCodes.class,
             term: firstTest.testCodes.term,
             session: firstTest.testCodes.session,
+            testType: firstTest.testCodes.testType,
             totalParticipation: groupTests.length,
             passCount,
             failCount,
@@ -343,7 +345,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <input
               type="text"
-              placeholder="Search by Class, Subject, Term, Session"
+              placeholder="Search by Class, Subject, Term, Session, Test Type"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="border p-2 rounded w-full mb-4"
@@ -367,9 +369,14 @@ const AdminDashboard = () => {
                           <h3 className="font-semibold text-lg text-gray-900">
                             {analytics.subject}
                           </h3>
-                          <Badge variant="outline" className="text-xs w-fit">
-                            {analytics.class}
-                          </Badge>
+                          <div className="flex gap-2">
+                            <Badge variant="outline" className="text-xs w-fit">
+                              {analytics.class}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs w-fit">
+                              {analytics.testType}
+                            </Badge>
+                          </div>
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
                           {analytics.session} • {analytics.term}
